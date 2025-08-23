@@ -1,11 +1,10 @@
-import './App.css';
-import TestPack from './components/testpack';
+import Inscription from '../components/inscription';
 
 
 function App() {
   return (
     <div className="App">
-      <TestPack />
+      <Inscription />
     </div>
   );
 }
