@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 const API_URL = 'http://localhost:8000/user';
 
@@ -8,6 +9,7 @@ const InscriptionConnexion = () => {
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     const [message, setMessage] = useState<string | null>(null);
+    const navigate = useNavigate();
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
@@ -35,7 +37,12 @@ const InscriptionConnexion = () => {
             const data = await response.json();
             if (data.success) {
                 setMessage(isRegister ? 'Inscription réussie !' : 'Connexion réussie !');
-                // Ici tu peux gérer la redirection ou le stockage du userId
+                if (data.userId) {
+                    localStorage.setItem('userId', data.userId);
+                }
+                setTimeout(() => {
+                    navigate('/Testconnexion');
+                }, 800);
             } else {
                 setMessage(data.error || 'Erreur inconnue.');
             }
