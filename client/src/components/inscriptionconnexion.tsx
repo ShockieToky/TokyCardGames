@@ -26,6 +26,7 @@ const InscriptionConnexion = () => {
         }
 
         try {
+            console.log('Envoi POST à', `${API_URL}/register`);
             const response = await fetch(`${API_URL}/${isRegister ? 'register' : 'login'}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },

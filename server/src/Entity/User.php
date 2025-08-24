@@ -4,9 +4,11 @@ namespace App\Entity;
 
 use App\Repository\UserRepository;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
+use Symfony\Component\Security\Core\User\UserInterface;
 
 #[ORM\Entity(repositoryClass: UserRepository::class)]
-class User
+class User implements UserInterface, PasswordAuthenticatedUserInterface
 {
     #[ORM\Id]
     #[ORM\GeneratedValue]
@@ -17,7 +19,10 @@ class User
     private ?string $pseudo = null;
 
     #[ORM\Column(length: 255)]
-    private ?string $password = null; // Stocke le mot de passe hashé
+    private ?string $password = null;
+
+    #[ORM\Column(type: 'boolean')]
+    private bool $is_admin = false;
 
     public function getId(): ?int
     {
@@ -55,5 +60,21 @@ class User
     {
         $this->is_admin = $is_admin;
         return $this;
+    }
+
+    // Méthodes requises par UserInterface
+    public function getRoles(): array
+    {
+        return $this->is_admin ? ['ROLE_ADMIN', 'ROLE_USER'] : ['ROLE_USER'];
+    }
+
+    public function eraseCredentials(): void
+    {
+        // Rien à faire ici
+    }
+
+    public function getUserIdentifier(): string
+    {
+        return $this->pseudo;
     }
 }
