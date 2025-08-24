@@ -45,4 +45,15 @@ class User
         $this->password = $password;
         return $this;
     }
+
+    public function isAdmin(): bool
+    {
+        return $this->is_admin;
+    }
+
+    public function setIsAdmin(bool $is_admin): self
+    {
+        $this->is_admin = $is_admin;
+        return $this;
+    }
 }
