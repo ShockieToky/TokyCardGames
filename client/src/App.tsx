@@ -1,10 +1,10 @@
-import Inscription from '../components/inscription';
+import Form from './pages/Form';
 
 
 function App() {
   return (
     <div className="App">
-      <Inscription />
+      <Form />
     </div>
   );
 }
