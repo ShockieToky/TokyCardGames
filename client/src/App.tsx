@@ -1,13 +1,13 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import Form from './pages/Form';
-import Testconnexion from './pages/Testconnexion';
+import Accueil from './pages/Accueil';
 
 function App() {
   return (
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<Form />} />
-        <Route path="/Testconnexion" element={<Testconnexion />} />
+        <Route path="/Accueil" element={<Accueil />} />
       </Routes>
     </BrowserRouter>
   );

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import '../styles/inscriptionconnexion.css';
 
 const API_URL = 'http://localhost:8000/user';
 
@@ -53,47 +54,47 @@ const InscriptionConnexion = () => {
     };
 
     return (
-        <div style={{ maxWidth: 350, margin: 'auto', padding: 20, border: '1px solid #ccc', borderRadius: 8 }}>
+        <div className='formulaire'>
             <h2>{isRegister ? 'Inscription' : 'Connexion'}</h2>
             <form onSubmit={handleSubmit}>
                 <div>
-                    <label>Pseudo :</label>
                     <input
                         type="text"
                         value={pseudo}
                         onChange={e => setPseudo(e.target.value)}
                         required
+                        placeholder='pseudo'
                         autoComplete="username"
                     />
                 </div>
                 <div>
-                    <label>Mot de passe :</label>
                     <input
                         type="password"
                         value={password}
                         onChange={e => setPassword(e.target.value)}
                         required
+                        placeholder='mot de passe'
                         autoComplete={isRegister ? "new-password" : "current-password"}
                     />
                 </div>
                 {isRegister && (
                     <div>
-                        <label>Confirmer le mot de passe :</label>
                         <input
                             type="password"
                             value={confirmPassword}
                             onChange={e => setConfirmPassword(e.target.value)}
                             required
+                            placeholder='confirmer mot de passe'
                             autoComplete="new-password"
                         />
                     </div>
                 )}
-                <button type="submit" style={{ marginTop: 10 }}>
+                <button className='submit-button' type="submit">
                     {isRegister ? "S'inscrire" : 'Se connecter'}
                 </button>
             </form>
             <button
-                style={{ marginTop: 10 }}
+                className='switch-button'
                 onClick={() => {
                     setIsRegister(!isRegister);
                     setMessage(null);

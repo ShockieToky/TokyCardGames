@@ -86,7 +86,6 @@ class UserController extends AbstractController
 
         try {
             $data = json_decode($request->getContent(), true);
-            file_put_contents(sys_get_temp_dir() . '/login_debug.log', print_r($data, true) . "\n", FILE_APPEND);
             $pseudo = $data['pseudo'] ?? '';
             $password = $data['password'] ?? '';
 

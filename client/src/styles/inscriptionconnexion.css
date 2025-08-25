@@ -1,0 +1,29 @@
+.formulaire {
+    text-align: center;
+}
+
+form {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 25px;
+}
+
+input {
+    height: 35px;
+    text-align: center;
+    font-size: 25px;
+}
+
+.submit-button {
+    width: 125px;
+    font-size: 20px;
+}
+
+.switch-button {
+    background-color: transparent;
+    border: none;
+    color: rgb(0, 0, 0);
+    text-decoration: underline;
+    margin-top: 25px;
+}
