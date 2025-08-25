@@ -7,18 +7,14 @@ const Testconnexion = () => {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        // Exemple : récupération du userId depuis le localStorage (à adapter selon ton système d'auth)
-        const userId = localStorage.getItem('userId');
-        if (!userId) {
-            setLoading(false);
-            setPseudo(null);
-            return;
-        }
-
-        fetch(`${API_URL}/info/${userId}`)
+        // On utilise la session côté back, donc on ne lit plus le localStorage
+        fetch(`${API_URL}/me`, {
+            method: 'GET',
+            credentials: 'include'
+        })
             .then(res => res.json())
             .then(data => {
-                if (data.pseudo) {
+                if (data.success && data.pseudo) {
                     setPseudo(data.pseudo);
                 } else {
                     setPseudo(null);
