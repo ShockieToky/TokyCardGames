@@ -91,6 +91,8 @@ class UserController extends AbstractController
                     'Access-Control-Allow-Origin' => 'http://localhost:3000'
                 ]);
             }
+            
+            $this->get('session')->set('user_id', $user->getId());
 
             return new JsonResponse(['success' => true, 'userId' => $user->getId()], 200, [
                 'Access-Control-Allow-Origin' => 'http://localhost:3000'

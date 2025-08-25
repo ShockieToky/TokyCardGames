@@ -33,6 +33,7 @@ const InscriptionConnexion = () => {
                 body: JSON.stringify({
                     pseudo,
                     password,
+                    credentials: 'include',
                 }),
             });
             const data = await response.json();
