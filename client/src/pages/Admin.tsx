@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from "react";
 import EditionHero from "../components/admin/editionhero";
+import EditionParchemin from "../components/admin/editionparchemin";
+import AjoutUtilisateurs from "../components/admin/ajoututilisateurs";
 
 const Admin = () => {
     const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
@@ -23,6 +25,8 @@ const Admin = () => {
         <div>
             <h1>Admin Page</h1>
             <EditionHero />
+            <EditionParchemin />
+            <AjoutUtilisateurs />
         </div>
     );
 };

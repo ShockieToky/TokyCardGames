@@ -153,4 +153,27 @@ class UserController extends AbstractController
             'Access-Control-Allow-Credentials' => 'true'
         ]);
     }
+
+    #[Route('/users', name: 'get_users', methods: ['GET', 'OPTIONS'])]
+    public function getUsers(Request $request, UserRepository $userRepo): JsonResponse
+    {
+        if ($request->getMethod() === 'OPTIONS') {
+            return new JsonResponse([], 200, [
+                'Access-Control-Allow-Origin' => 'http://localhost:3000',
+                'Access-Control-Allow-Methods' => 'GET, OPTIONS',
+                'Access-Control-Allow-Headers' => 'Content-Type'
+            ]);
+        }
+
+        $users = $userRepo->findAll();
+        $data = array_map(fn($u) => [
+            'id' => $u->getId(),
+            'pseudo' => $u->getPseudo()
+        ], $users);
+
+        return new JsonResponse($data, 200, [
+            'Access-Control-Allow-Origin' => 'http://localhost:3000',
+            'Access-Control-Allow-Credentials' => 'true'
+        ]);
+    }
 }

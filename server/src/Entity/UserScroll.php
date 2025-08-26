@@ -28,4 +28,37 @@ class UserScroll
     {
         return $this->id;
     }
+
+    public function getUser(): ?User
+    {
+        return $this->user;
+    }
+
+    public function setUser(User $user): self
+    {
+        $this->user = $user;
+        return $this;
+    }
+
+    public function getScroll(): ?Scroll
+    {
+        return $this->scroll;
+    }
+
+    public function setScroll(Scroll $scroll): self
+    {
+        $this->scroll = $scroll;
+        return $this;
+    }
+
+    public function getQuantity(): int
+    {
+        return $this->quantity;
+    }
+
+    public function setQuantity(int $quantity): self
+    {
+        $this->quantity = $quantity;
+        return $this;
+    }
 }

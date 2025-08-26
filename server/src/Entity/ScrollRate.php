@@ -27,4 +27,37 @@ class ScrollRate
     {
         return $this->id;
     }
+
+    public function getScroll(): ?Scroll
+    {
+        return $this->scroll;
+    }
+
+    public function setScroll(Scroll $scroll): self
+    {
+        $this->scroll = $scroll;
+        return $this;
+    }
+
+    public function getStar(): ?int
+    {
+        return $this->star;
+    }
+
+    public function setStar(int $star): self
+    {
+        $this->star = $star;
+        return $this;
+    }
+
+    public function getRate(): ?float
+    {
+        return $this->rate;
+    }
+
+    public function setRate(float $rate): self
+    {
+        $this->rate = $rate;
+        return $this;
+    }
 }
