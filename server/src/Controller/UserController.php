@@ -146,7 +146,8 @@ class UserController extends AbstractController
         return new JsonResponse([
             'success' => true,
             'userId' => $user->getId(),
-            'pseudo' => $user->getPseudo()
+            'pseudo' => $user->getPseudo(),
+            'isAdmin' => $user->isAdmin()
         ], 200, [
             'Access-Control-Allow-Origin' => 'http://localhost:3000',
             'Access-Control-Allow-Credentials' => 'true'

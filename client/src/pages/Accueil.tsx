@@ -1,8 +1,12 @@
 import React from 'react';
+import Background from '../components/background';
+import Redirection from '../components/accueil/redirection';
+
 
 const Accueil = () => (
     <div>
-        <h2>Bienvenue sur Toky Universe !</h2>
+        <Background />
+        <Redirection />
     </div>
 );
 

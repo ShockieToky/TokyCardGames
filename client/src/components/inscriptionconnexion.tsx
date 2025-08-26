@@ -43,7 +43,7 @@ const InscriptionConnexion = () => {
                     localStorage.setItem('userId', data.userId);
                 }
                 setTimeout(() => {
-                    navigate('/Testconnexion');
+                    navigate('/Accueil');
                 }, 800);
             } else {
                 setMessage(data.error || 'Erreur inconnue.');
