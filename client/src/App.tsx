@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import Form from './pages/Form';
 import Accueil from './pages/Accueil';
 import Admin from './pages/Admin';
+import Invocation from './pages/Invocation';
 
 function App() {
   return (
@@ -10,6 +11,7 @@ function App() {
         <Route path="/" element={<Form />} />
         <Route path="/Accueil" element={<Accueil />} />
         <Route path="/Admin" element={<Admin />} />
+        <Route path="/Invocation" element={<Invocation />} />
       </Routes>
     </BrowserRouter>
   );

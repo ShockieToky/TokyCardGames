@@ -25,4 +25,26 @@ class UserCollection
     {
         return $this->id;
     }
+
+    public function getHero(): ?Hero
+    {
+        return $this->hero;
+    }
+
+    public function setHero(?Hero $hero): self
+    {
+        $this->hero = $hero;
+        return $this;
+    }
+
+    public function getUser(): ?User
+    {
+        return $this->user;
+    }
+
+    public function setUser(?User $user): self
+    {
+        $this->user = $user;
+        return $this;
+    }
 }
