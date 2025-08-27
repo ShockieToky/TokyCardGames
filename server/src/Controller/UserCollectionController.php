@@ -88,7 +88,16 @@ final class UserCollectionController extends AbstractController
             ]);
         }
 
-        // Tirage au sort de l'étoile selon les rates
+        // Filtre les rates à 0
+        $rates = array_filter($rates, fn($rate) => $rate->getRate() > 0);
+        if (empty($rates)) {
+            return new JsonResponse(['error' => 'Aucune étoile summonable pour ce parchemin'], 400, [
+                'Access-Control-Allow-Origin' => 'http://localhost:3000',
+                'Access-Control-Allow-Credentials' => 'true'
+            ]);
+        }
+
+        // Tirage au sort de l'étoile selon les rates > 0
         $rand = mt_rand() / mt_getrandmax();
         $acc = 0;
         $star = null;
@@ -100,8 +109,7 @@ final class UserCollectionController extends AbstractController
             }
         }
         if ($star === null) {
-            // Si aucun rate n'a été sélectionné, prend la dernière étoile
-            $star = $rates[count($rates) - 1]->getStar();
+            $star = end($rates)->getStar();
         }
 
         // Sélectionne un héros avec cette étoile

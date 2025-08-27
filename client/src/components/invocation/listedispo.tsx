@@ -49,7 +49,7 @@ const ListeDispo: React.FC<Props> = ({ scrollId }) => {
     if (loading) return <div>Chargement des héros...</div>;
 
     return (
-        <div style={{ marginTop: "1rem", border: "1px solid #ddd", borderRadius: "8px", padding: "1rem", background: "#fff" }}>
+        <div className="liste-dispo">
             <h4>Héros disponibles avec ce parchemin :</h4>
             {heroes.length === 0 ? (
                 <div>Aucun héros disponible.</div>

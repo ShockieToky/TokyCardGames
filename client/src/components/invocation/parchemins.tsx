@@ -13,10 +13,9 @@ const Parchemins: React.FC<Props> = ({ onSelectScroll, selectedScrollId }) => {
     const [scrolls, setScrolls] = useState<{ id: number, name: string, description: string }[]>([]);
     const [userScrolls, setUserScrolls] = useState<{ scrollId: number, quantity: number }[]>([]);
     const [loading, setLoading] = useState(true);
-    const [message, setMessage] = useState<string | null>(null);
-    const [summonedHero, setSummonedHero] = useState<{ name: string, star: number } | null>(null);
+    const [messageByScroll, setMessageByScroll] = useState<{ [key: number]: string }>({});
+    const [summonedHeroByScroll, setSummonedHeroByScroll] = useState<{ [key: number]: { name: string, star: number } | null }>({});
 
-    // Récupère les parchemins et la collection utilisateur
     useEffect(() => {
         fetch(SCROLLS_API, { credentials: "include" })
             .then(res => res.json())
@@ -32,7 +31,7 @@ const Parchemins: React.FC<Props> = ({ onSelectScroll, selectedScrollId }) => {
 
     const userScrollsMap = Object.fromEntries(userScrolls.map(us => [us.scrollId, us.quantity]));
 
-    // Fonction pour rafraîchir la collection utilisateur après invocation
+    // Rafraîchit la collection utilisateur après invocation
     const refreshUserScrolls = () => {
         fetch(USER_SCROLLS_API, { credentials: "include" })
             .then(res => res.json())
@@ -41,8 +40,10 @@ const Parchemins: React.FC<Props> = ({ onSelectScroll, selectedScrollId }) => {
     };
 
     const handleInvoke = async (scrollId: number) => {
-        setMessage(null);
-        setSummonedHero(null);
+        // Reset uniquement pour le parchemin invoqué
+        setMessageByScroll(prev => ({ ...prev, [scrollId]: "" }));
+        setSummonedHeroByScroll(prev => ({ ...prev, [scrollId]: null }));
+
         const response = await fetch(INVOKE_API, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -51,11 +52,12 @@ const Parchemins: React.FC<Props> = ({ onSelectScroll, selectedScrollId }) => {
         });
         const data = await response.json();
         if (data.success) {
-            setMessage(`Héros invoqué : ${data.heroName} (${data.star}★)`);
-            setSummonedHero({ name: data.heroName, star: data.star });
-            refreshUserScrolls(); // Met à jour en temps réel la quantité de parchemins
+            setMessageByScroll(prev => ({ ...prev, [scrollId]: `Héros invoqué : ${data.heroName} (${data.star}★)` }));
+            setSummonedHeroByScroll(prev => ({ ...prev, [scrollId]: { name: data.heroName, star: data.star } }));
+            refreshUserScrolls();
         } else {
-            setMessage(data.error || "Erreur lors de l'invocation.");
+            setMessageByScroll(prev => ({ ...prev, [scrollId]: data.error || "Erreur lors de l'invocation." }));
+            setSummonedHeroByScroll(prev => ({ ...prev, [scrollId]: null }));
         }
     };
 
@@ -64,22 +66,14 @@ const Parchemins: React.FC<Props> = ({ onSelectScroll, selectedScrollId }) => {
     return (
         <div>
             <h2>Parchemins disponibles</h2>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: "1rem" }}>
+            <div className="parchemins-container">
                 {scrolls.map(scroll => {
                     const quantity = userScrollsMap[scroll.id] || 0;
                     const isSelected = selectedScrollId === scroll.id;
                     return (
                         <div
+                            className={`parchemin${isSelected ? " selected" : ""}`}
                             key={scroll.id}
-                            style={{
-                                border: isSelected ? "2px solid #3949ab" : "1px solid #ccc",
-                                borderRadius: "8px",
-                                padding: "1rem",
-                                minWidth: "200px",
-                                background: isSelected ? "#e3e6fd" : "#f9f9f9",
-                                cursor: "pointer",
-                                boxShadow: isSelected ? "0 0 8px #3949ab" : "none"
-                            }}
                             onClick={() => onSelectScroll(scroll.id)}
                         >
                             <h3>{scroll.name}</h3>
@@ -94,16 +88,28 @@ const Parchemins: React.FC<Props> = ({ onSelectScroll, selectedScrollId }) => {
                             >
                                 Invoquer x1
                             </button>
+                            {isSelected && (
+                                <>
+                                    {messageByScroll[scroll.id] && (
+                                        <div style={{ marginTop: "1rem" }}>{messageByScroll[scroll.id]}</div>
+                                    )}
+                                    {summonedHeroByScroll[scroll.id] && (
+                                        <div style={{
+                                            marginTop: "1rem",
+                                            padding: "1rem",
+                                            border: "1px solid #3949ab",
+                                            borderRadius: "8px",
+                                            background: "#e3e6fd"
+                                        }}>
+                                            <strong>Héros invoqué :</strong> {summonedHeroByScroll[scroll.id]?.name} ({summonedHeroByScroll[scroll.id]?.star}★)
+                                        </div>
+                                    )}
+                                </>
+                            )}
                         </div>
                     );
                 })}
             </div>
-            {message && <div style={{ marginTop: "1rem" }}>{message}</div>}
-            {summonedHero && (
-                <div style={{ marginTop: "1rem", padding: "1rem", border: "1px solid #3949ab", borderRadius: "8px", background: "#e3e6fd" }}>
-                    <strong>Héros invoqué :</strong> {summonedHero.name} ({summonedHero.star}★)
-                </div>
-            )}
         </div>
     );
 };
