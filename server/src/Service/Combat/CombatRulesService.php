@@ -2,126 +2,72 @@
 
 namespace App\Service\Combat;
 
-use App\Entity\Hero;
-
 class CombatRulesService
 {
     /**
-     * Détermine l'ordre des héros selon la vitesse
+     * Initialise un combat avec les équipes données.
      */
-    public function determineTurnOrder(array $heroes): array
+    public function initializeCombat(array $teamA, array $teamB): void
     {
-        usort($heroes, fn(Hero $a, Hero $b) => $b->getSpeed() <=> $a->getSpeed());
-        return $heroes;
-    }
-
-    /**
-     * Applique un buff ou debuff sur un héros
-     */
-    public function applyStatModifier(Hero $target, string $stat, float $value, bool $isBuff = true): void
-    {
-        switch ($stat) {
-            case 'hp':
-                $target->setHp($target->getHp() * (1 + $value / 100));
-                break;
-            case 'attack':
-                $modifier = $isBuff ? 0.10 : -0.10;
-                $target->setAttack($target->getAttack() * (1 + $modifier));
-                break;
-            case 'defense':
-                $modifier = $isBuff ? 0.10 : -0.15;
-                $target->setDefense($target->getDefense() * (1 + $modifier));
-                break;
-            case 'speed':
-                $modifier = $isBuff ? 0.15 : -0.15;
-                $target->setSpeed($target->getSpeed() * (1 + $modifier));
-                break;
-            case 'resistance':
-                $modifier = $isBuff ? 25 : -20;
-                $target->setResistance($target->getResistance() + $modifier);
-                break;
+        // Initialisation des combattants
+        foreach ($teamA as $fighter) {
+            // ...initialisation des états de combat pour l'équipe A...
+        }
+        foreach ($teamB as $fighter) {
+            // ...initialisation des états de combat pour l'équipe B...
         }
     }
 
     /**
-     * Applique un effet positif
+     * Détermine l'ordre d'attaque pour le tour en cours.
      */
-    public function applyPositiveEffect(Hero $caster, Hero $target, string $effect, float $value = 0): void
+    public function getAttackOrder(array $fighters): array
     {
-        switch ($effect) {
-            case 'shield':
-                $target->setShield($target->getHp() * ($value / 100));
-                break;
-            case 'protection':
-                $target->setProtected(true);
-                break;
-            case 'lifeSteal':
-                $caster->setHp(min($caster->getMaxHp(), $caster->getHp() + $value));
-                break;
-            case 'counter':
-                $target->setCounterPercent($value);
-                break;
-            case 'revive':
-                $target->setRevivePercent($value);
-                break;
-        }
+        // ...calcul de l'ordre d'attaque...
+        return [];
     }
 
     /**
-     * Applique un effet négatif
+     * Exécute un tour de combat.
      */
-    public function applyNegativeEffect(Hero $target, string $effect, int $turns = 1, float $value = 0): void
+    public function executeTurn(array $fighters): void
     {
-        switch ($effect) {
-            case 'stun':
-                $target->setStunned($turns);
-                break;
-            case 'silence':
-                $target->setSilenced($turns);
-                break;
-            case 'passiveBlock':
-                $target->setPassiveBlocked($turns);
-                break;
-            case 'blockBuff':
-                $target->setBuffBlocked(true);
-                break;
-            case 'damageOverTime':
-                $target->setDotPercent($value);
-                break;
-            case 'taunt':
-                $target->setProvoked(true);
-                break;
-            case 'deadlyHeal':
-                $target->setDeadlyHeal(true);
-                break;
-        }
+        // ...logique d'un tour de combat...
     }
 
     /**
-     * Calcul des dégâts selon la formule :
-     * dmg = attaque de l'attaquant x multiplicateur compétence x (1000 / (1000 + défense du défenseur))
+     * Gestion des cooldowns.
      */
-    public function calculateDamage(Hero $attacker, Hero $defender, float $skillMultiplier): int
+    public function manageCooldowns(array $fighters): void
     {
-        $attack = $attacker->getAttack();
-        $defense = $defender->getDefense();
+        // ...logique de gestion des cooldowns...
+    }
 
-        // Formule officielle
-        $damage = $attack * $skillMultiplier * (1000 / (1000 + $defense));
+    /**
+     * Vérifie si le combat est terminé.
+     */
+    public function isCombatFinished(array $fighters): bool
+    {
+        // ...vérification de la fin du combat...
+        return false;
+    }
 
-        // Appliquer le bouclier
-        if ($defender->getShield() > 0) {
-            $shield = $defender->getShield();
-            if ($damage >= $shield) {
-                $damage -= $shield;
-                $defender->setShield(0);
-            } else {
-                $defender->setShield($shield - $damage);
-                $damage = 0;
-            }
-        }
+    /**
+     * Ajoute un log d'action au combat.
+     */
+    public function addCombatLog(array &$logs, string $message): void
+    {
+        $logs[] = [
+            'timestamp' => time(),
+            'message' => $message
+        ];
+    }
 
-        // Arrondi à l'entier supérieur pour éviter les dégâts décimaux
-        return (int) ceil(max(0, $damage));
+    /**
+     * Récupère tous les logs du combat.
+     */
+    public function getCombatLogs(array $logs): array
+    {
+        return $logs;
     }
 }
