@@ -17,7 +17,10 @@ input {
 
 .submit-button {
     width: 125px;
-    font-size: 20px;
+    font-size: 15px;
+    background-color: rgb(241, 150, 45);
+    color: black;
+    border: 1px solid black;
 }
 
 .switch-button {
@@ -26,4 +29,5 @@ input {
     color: rgb(0, 0, 0);
     text-decoration: underline;
     margin-top: 25px;
+    font-size: 15px;
 }

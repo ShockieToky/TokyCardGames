@@ -79,7 +79,7 @@ const EditionHero = () => {
                     <option value={1}>Défense</option>
                     <option value={2}>Attaque</option>
                 </select>
-                <button type="submit">Ajouter le héros</button>
+                <button className="bouton-admin" type="submit">Ajouter le héros</button>
             </form>
             {message && <div style={{ marginTop: "1rem" }}>{message}</div>}
         </div>

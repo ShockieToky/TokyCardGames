@@ -6,9 +6,12 @@
     margin-left: 25%;
 }
 
-button {
+.bouton-redirect {
     height: 100px;
     width: 300px;
-    font-size: 35px;
+    font-size: 15px;
     margin-bottom: 25px;
+    background-color: linear-gradient(180deg, rgba(255, 255, 255, 1) 0%, rgba(189, 189, 189, 1) 50%, rgba(255, 255, 255, 1) 100%);
+    color: black;
+    border: 1px solid black;
 }

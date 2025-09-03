@@ -121,7 +121,7 @@ const EditionParchemin = () => {
                     </div>
                 ))}
                 <div>Total : {totalRate.toFixed(2)}</div>
-                <button type="submit">Ajouter le parchemin</button>
+                <button className="bouton-admin" type="submit">Ajouter le parchemin</button>
             </form>
             {message && <div style={{ marginTop: "1rem" }}>{message}</div>}
         </div>

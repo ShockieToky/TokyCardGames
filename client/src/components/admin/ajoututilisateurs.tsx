@@ -95,7 +95,7 @@ const AjoutUtilisateurs = () => {
                         required
                     />
                 </label>
-                <button type="submit">Ajouter</button>
+                <button className="bouton-admin" type="submit">Ajouter</button>
             </form>
             {message && <div style={{ marginTop: "1rem" }}>{message}</div>}
         </div>

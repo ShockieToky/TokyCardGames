@@ -29,9 +29,9 @@ const Redirection: React.FC = () => {
             <button onClick={() => navigate('/arene-pvp')}>Arène PVP</button>
             <button onClick={() => navigate('/histoire')}>Mode Histoire</button>
             <button onClick={() => navigate('/donjons')}>Mode Donjons</button> */}
-            <button onClick={() => navigate('/Invocation')}>Invocation</button>
+            <button className='bouton-redirect' onClick={() => navigate('/Invocation')}>Invocation</button>
             {isAdmin && (
-                <button onClick={() => navigate('/Admin')}>Page Admin</button>
+                <button className='bouton-redirect' onClick={() => navigate('/Admin')}>Page Admin</button>
             )}
         </div>
     );
