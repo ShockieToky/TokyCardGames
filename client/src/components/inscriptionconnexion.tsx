@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useUser } from '../context/UserContext';
 import '../styles/inscriptionconnexion.css';
 
 const API_URL = 'http://localhost:8000/user';
@@ -13,6 +14,7 @@ const InscriptionConnexion = () => {
     const [isSuccess, setIsSuccess] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const navigate = useNavigate();
+    const { login } = useUser();
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
@@ -34,46 +36,25 @@ const InscriptionConnexion = () => {
         }
 
         try {
-            console.log(`Envoi de la requête ${isRegister ? 'inscription' : 'connexion'}...`);
+            if (isRegister) {
+                // Gestion de l'inscription
+                console.log('Envoi de la requête d\'inscription...');
 
-            const response = await fetch(`${API_URL}/${isRegister ? 'register' : 'login'}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    pseudo,
-                    password,
-                }),
-                credentials: 'include',
-            });
+                const response = await fetch(`${API_URL}/register`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ pseudo, password }),
+                    credentials: 'include',
+                });
 
-            console.log('Réponse reçue:', response.status);
+                console.log('Réponse inscription reçue:', response.status);
+                const data = await response.json();
 
-            const data = await response.json();
-            console.log('Données reçues:', data);
+                if (data.success) {
+                    setIsSuccess(true);
+                    setMessage('Inscription réussie !');
 
-            if (data.success) {
-                setIsSuccess(true);
-                setMessage(isRegister ? 'Inscription réussie !' : 'Connexion réussie !');
-
-                if (data.userId) {
-                    // Stocker l'ID utilisateur localement si nécessaire
-                    localStorage.setItem('userId', data.userId.toString());
-
-                    if (data.isAdmin) {
-                        localStorage.setItem('isAdmin', 'true');
-                    }
-                }
-
-                // Si c'est une connexion, rafraîchir la page pour forcer la vérification de session
-                if (!isRegister) {
-                    console.log('Rafraîchissement de la page pour actualiser la session...');
-
-                    // Courte temporisation pour afficher le message de succès
-                    setTimeout(() => {
-                        window.location.href = '/Accueil'; // Redirection directe via URL
-                    }, 800);
-                } else {
-                    // Si c'est une inscription, attendre puis basculer vers le formulaire de connexion
+                    // Basculer vers connexion après inscription
                     setTimeout(() => {
                         setIsRegister(false);
                         setPseudo('');
@@ -82,10 +63,25 @@ const InscriptionConnexion = () => {
                         setMessage('Inscription réussie ! Vous pouvez maintenant vous connecter.');
                         setIsSuccess(false);
                     }, 1500);
+                } else {
+                    setMessage(data.error || 'Erreur lors de l\'inscription.');
                 }
             } else {
-                // Message d'erreur du serveur
-                setMessage(data.error || 'Erreur inconnue.');
+                // Gestion de la connexion avec le contexte
+                console.log('Tentative de connexion via contexte...');
+                const result = await login(pseudo, password);
+
+                if (result.success) {
+                    setIsSuccess(true);
+                    setMessage('Connexion réussie !');
+
+                    // Courte temporisation pour afficher le message avant redirection
+                    setTimeout(() => {
+                        navigate('/Accueil');
+                    }, 800);
+                } else {
+                    setMessage(result.error || 'Identifiants invalides.');
+                }
             }
         } catch (err) {
             console.error('Erreur lors de la requête:', err);

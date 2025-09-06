@@ -1,14 +1,13 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-
-const API_URL = 'http://localhost:8000';
+import { useUser } from '../../context/UserContext';
 
 const Deconnexion: React.FC = () => {
     const navigate = useNavigate();
     const [loading, setLoading] = useState(false);
+    const { logout } = useUser();
 
     const handleLogout = async () => {
-        // Correction: utiliser window.confirm au lieu de confirm directement
         if (!window.confirm("Êtes-vous sûr de vouloir vous déconnecter ?")) {
             return;
         }
@@ -16,24 +15,11 @@ const Deconnexion: React.FC = () => {
         setLoading(true);
 
         try {
-            const response = await fetch(`${API_URL}/logout`, {
-                method: 'POST',
-                credentials: 'include',
-                headers: {
-                    'Content-Type': 'application/json'
-                }
-            });
-
-            if (response.ok) {
-                navigate('/');
-                window.location.reload();
-            } else {
-                console.error('Erreur lors de la déconnexion:', await response.text());
-                alert('Erreur lors de la déconnexion. Veuillez réessayer.');
-            }
+            await logout();
+            navigate('/');
         } catch (error) {
             console.error('Erreur lors de la déconnexion:', error);
-            alert('Erreur réseau lors de la déconnexion. Veuillez réessayer.');
+            alert('Erreur lors de la déconnexion. Veuillez réessayer.');
         } finally {
             setLoading(false);
         }

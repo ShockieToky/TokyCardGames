@@ -6,7 +6,7 @@ const Form = () => {
     return (
         <div>
             <Background />
-            <InscriptionConnexion onLogin={onLogin} />
+            <InscriptionConnexion />
         </div>
     );
 };
