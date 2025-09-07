@@ -47,6 +47,8 @@ final class UserCollectionController extends AbstractController
 
         $data = json_decode($request->getContent(), true);
         $scrollId = $data['scrollId'] ?? null;
+        $count = isset($data['count']) && is_numeric($data['count']) && $data['count'] > 0 ? (int)$data['count'] : 1;
+
         if (!$scrollId) {
             return new JsonResponse(['error' => 'Parchemin non spécifié'], 400, [
                 'Access-Control-Allow-Origin' => 'http://localhost:3000',
@@ -63,17 +65,17 @@ final class UserCollectionController extends AbstractController
             ]);
         }
 
-        // Vérifie que l'utilisateur possède au moins un parchemin
+        // Vérifie que l'utilisateur possède assez de parchemins
         $userScroll = $userScrollRepo->findOneBy(['user' => $user, 'scroll' => $scroll]);
-        if (!$userScroll || $userScroll->getQuantity() < 1) {
+        if (!$userScroll || $userScroll->getQuantity() < $count) {
             return new JsonResponse(['error' => 'Pas assez de parchemins'], 400, [
                 'Access-Control-Allow-Origin' => 'http://localhost:3000',
                 'Access-Control-Allow-Credentials' => 'true'
             ]);
         }
 
-        // Retire un parchemin
-        $userScroll->setQuantity($userScroll->getQuantity() - 1);
+        // Retire les parchemins
+        $userScroll->setQuantity($userScroll->getQuantity() - $count);
         if ($userScroll->getQuantity() <= 0) {
             $em->remove($userScroll);
         }
@@ -97,47 +99,70 @@ final class UserCollectionController extends AbstractController
             ]);
         }
 
-        // Tirage au sort de l'étoile selon les rates > 0
-        $rand = mt_rand() / mt_getrandmax();
-        $acc = 0;
-        $star = null;
-        foreach ($rates as $rate) {
-            $acc += $rate->getRate();
-            if ($rand <= $acc) {
-                $star = $rate->getStar();
-                break;
+        $resultHeroes = [];
+
+        for ($i = 0; $i < $count; $i++) {
+            // Tirage au sort de l'étoile selon les rates > 0
+            $rand = mt_rand() / mt_getrandmax();
+            $acc = 0;
+            $star = null;
+            foreach ($rates as $rate) {
+                $acc += $rate->getRate();
+                if ($rand <= $acc) {
+                    $star = $rate->getStar();
+                    break;
+                }
             }
-        }
-        if ($star === null) {
-            $star = end($rates)->getStar();
+            if ($star === null) {
+                $star = end($rates)->getStar();
+            }
+
+            // Sélectionne un héros avec cette étoile
+            $heroes = $heroRepo->findBy(['star' => $star]);
+            if (!$heroes || count($heroes) === 0) {
+                return new JsonResponse(['error' => 'Aucun héros avec cette étoile'], 400, [
+                    'Access-Control-Allow-Origin' => 'http://localhost:3000',
+                    'Access-Control-Allow-Credentials' => 'true'
+                ]);
+            }
+            $hero = $heroes[array_rand($heroes)];
+
+            // Ajoute le héros à la collection de l'utilisateur
+            $userCollection = new UserCollection();
+            $userCollection->setUser($user);
+            $userCollection->setHero($hero);
+            $em->persist($userCollection);
+
+            $resultHeroes[] = [
+                'heroId' => $hero->getId(),
+                'heroName' => $hero->getName(),
+                'star' => $hero->getStar()
+            ];
         }
 
-        // Sélectionne un héros avec cette étoile
-        $heroes = $heroRepo->findBy(['star' => $star]);
-        if (!$heroes || count($heroes) === 0) {
-            return new JsonResponse(['error' => 'Aucun héros avec cette étoile'], 400, [
+        $em->flush();
+
+        // Réponse adaptée pour x1 ou x10
+        if ($count === 1) {
+            $hero = $resultHeroes[0];
+            return new JsonResponse([
+                'success' => true,
+                'heroId' => $hero['heroId'],
+                'heroName' => $hero['heroName'],
+                'star' => $hero['star']
+            ], 200, [
+                'Access-Control-Allow-Origin' => 'http://localhost:3000',
+                'Access-Control-Allow-Credentials' => 'true'
+            ]);
+        } else {
+            return new JsonResponse([
+                'success' => true,
+                'heroes' => $resultHeroes
+            ], 200, [
                 'Access-Control-Allow-Origin' => 'http://localhost:3000',
                 'Access-Control-Allow-Credentials' => 'true'
             ]);
         }
-        $hero = $heroes[array_rand($heroes)];
-
-        // Ajoute le héros à la collection de l'utilisateur
-        $userCollection = new UserCollection();
-        $userCollection->setUser($user);
-        $userCollection->setHero($hero);
-        $em->persist($userCollection);
-        $em->flush();
-
-        return new JsonResponse([
-            'success' => true,
-            'heroId' => $hero->getId(),
-            'heroName' => $hero->getName(),
-            'star' => $hero->getStar()
-        ], 200, [
-            'Access-Control-Allow-Origin' => 'http://localhost:3000',
-            'Access-Control-Allow-Credentials' => 'true'
-        ]);
     }
 
     #[Route('/user/collection', name: 'get_user_collection', methods: ['GET', 'OPTIONS'])]

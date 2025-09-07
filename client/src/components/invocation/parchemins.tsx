@@ -14,7 +14,7 @@ const Parchemins: React.FC<Props> = ({ onSelectScroll, selectedScrollId }) => {
     const [userScrolls, setUserScrolls] = useState<{ scrollId: number, quantity: number }[]>([]);
     const [loading, setLoading] = useState(true);
     const [messageByScroll, setMessageByScroll] = useState<{ [key: number]: string }>({});
-    const [summonedHeroByScroll, setSummonedHeroByScroll] = useState<{ [key: number]: { name: string, star: number } | null }>({});
+    const [summonedHeroByScroll, setSummonedHeroByScroll] = useState<{ [key: number]: { name: string, star: number }[] }>({});
 
     useEffect(() => {
         fetch(SCROLLS_API, { credentials: "include" })
@@ -39,25 +39,46 @@ const Parchemins: React.FC<Props> = ({ onSelectScroll, selectedScrollId }) => {
             .catch(() => setUserScrolls([]));
     };
 
-    const handleInvoke = async (scrollId: number) => {
-        // Reset uniquement pour le parchemin invoqué
+    const handleInvoke = async (scrollId: number, count: number = 1) => {
         setMessageByScroll(prev => ({ ...prev, [scrollId]: "" }));
-        setSummonedHeroByScroll(prev => ({ ...prev, [scrollId]: null }));
+        setSummonedHeroByScroll(prev => ({ ...prev, [scrollId]: [] }));
 
         const response = await fetch(INVOKE_API, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             credentials: "include",
-            body: JSON.stringify({ scrollId })
+            body: JSON.stringify({ scrollId, count })
         });
         const data = await response.json();
         if (data.success) {
-            setMessageByScroll(prev => ({ ...prev, [scrollId]: `Héros invoqué : ${data.heroName} (${data.star}★)` }));
-            setSummonedHeroByScroll(prev => ({ ...prev, [scrollId]: { name: data.heroName, star: data.star } }));
+            if (count === 1) {
+                setMessageByScroll(prev => ({
+                    ...prev,
+                    [scrollId]: `Héros invoqué : ${data.heroName} (${data.star}★)`
+                }));
+                setSummonedHeroByScroll(prev => ({
+                    ...prev,
+                    [scrollId]: [{ name: data.heroName, star: data.star }]
+                }));
+            } else {
+                setMessageByScroll(prev => ({
+                    ...prev,
+                    [scrollId]: `Héros invoqués :`
+                }));
+                setSummonedHeroByScroll(prev => ({
+                    ...prev,
+                    [scrollId]: Array.isArray(data.heroes)
+                        ? data.heroes.map((h: any) => ({ name: h.heroName, star: h.star }))
+                        : []
+                }));
+            }
             refreshUserScrolls();
         } else {
-            setMessageByScroll(prev => ({ ...prev, [scrollId]: data.error || "Erreur lors de l'invocation." }));
-            setSummonedHeroByScroll(prev => ({ ...prev, [scrollId]: null }));
+            setMessageByScroll(prev => ({
+                ...prev,
+                [scrollId]: data.error || "Erreur lors de l'invocation."
+            }));
+            setSummonedHeroByScroll(prev => ({ ...prev, [scrollId]: [] }));
         }
     };
 
@@ -83,17 +104,27 @@ const Parchemins: React.FC<Props> = ({ onSelectScroll, selectedScrollId }) => {
                                 disabled={quantity < 1}
                                 onClick={e => {
                                     e.stopPropagation();
-                                    handleInvoke(scroll.id);
+                                    handleInvoke(scroll.id, 1);
                                 }}
                             >
                                 Invoquer x1
+                            </button>
+                            <button
+                                disabled={quantity < 10}
+                                style={{ marginLeft: 8 }}
+                                onClick={e => {
+                                    e.stopPropagation();
+                                    handleInvoke(scroll.id, 10);
+                                }}
+                            >
+                                Invoquer x10
                             </button>
                             {isSelected && (
                                 <>
                                     {messageByScroll[scroll.id] && (
                                         <div style={{ marginTop: "1rem" }}>{messageByScroll[scroll.id]}</div>
                                     )}
-                                    {summonedHeroByScroll[scroll.id] && (
+                                    {summonedHeroByScroll[scroll.id] && summonedHeroByScroll[scroll.id].length > 0 && (
                                         <div style={{
                                             marginTop: "1rem",
                                             padding: "1rem",
@@ -101,7 +132,11 @@ const Parchemins: React.FC<Props> = ({ onSelectScroll, selectedScrollId }) => {
                                             borderRadius: "8px",
                                             background: "#e3e6fd"
                                         }}>
-                                            <strong>Héros invoqué :</strong> {summonedHeroByScroll[scroll.id]?.name} ({summonedHeroByScroll[scroll.id]?.star}★)
+                                            {summonedHeroByScroll[scroll.id].map((hero, idx) => (
+                                                <div key={idx}>
+                                                    <strong>{hero.name}</strong> ({hero.star}★)
+                                                </div>
+                                            ))}
                                         </div>
                                     )}
                                 </>
