@@ -3,6 +3,7 @@ import EditionHero from "../components/admin/editionhero";
 import EditionParchemin from "../components/admin/editionparchemin";
 import AjoutUtilisateurs from "../components/admin/ajoututilisateurs";
 import ModifHero from "../components/admin/modifhero";
+import AjoutCode from "../components/admin/ajoutcode";
 import '../styles/admin.css';
 
 const Admin = () => {
@@ -35,6 +36,8 @@ const Admin = () => {
                 return <AjoutUtilisateurs />;
             case "modifhero":
                 return <ModifHero />;
+            case "ajoutcode":
+                return <AjoutCode />;
             default:
                 return <div>Sélectionnez un composant</div>;
         }
@@ -55,6 +58,7 @@ const Admin = () => {
                     <option value="editionhero">Ajouter un héros</option>
                     <option value="editionparchemin">Gérer les parchemins</option>
                     <option value="ajoututilisateurs">Gérer les utilisateurs</option>
+                    <option value="ajoutcode">Ajouter un code</option>
                 </select>
             </div>
 

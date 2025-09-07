@@ -5,12 +5,14 @@ import Deconnexion from '../components/accueil/deconnexion';
 import '../styles/accueil.css';
 import ModifProfil from '../components/accueil/modifprofil';
 import AffichageCollection from '../components/accueil/affichagecollection';
+import CodeInput from '../components/accueil/code';
 
 
 const Accueil = () => (
     <div>
         <Background />
         <Redirection />
+        <CodeInput />
         <AffichageCollection />
         <ModifProfil />
         <Deconnexion />
