@@ -69,10 +69,13 @@ const HeroPopup: React.FC<HeroPopupProps> = ({ heroId, heroName, onClose }) => {
                         <div>
                             <strong>Étoiles :</strong> {stats.star} <br />
                             <strong>Type :</strong> {
-                                stats.type === "0" ? "PV" :
-                                    stats.type === "1" ? "Défense" :
-                                        stats.type === "2" ? "Attaque" :
-                                            stats.type
+                                (() => {
+                                    const t = String(stats.type).trim();
+                                    if (t === "0") return "PV";
+                                    if (t === "1") return "Défense";
+                                    if (t === "2") return "Attaque";
+                                    return stats.type;
+                                })()
                             } <br />
                             <strong>HP :</strong> {stats.HP} <br />
                             <strong>ATK :</strong> {stats.ATK} <br />

@@ -23,15 +23,54 @@ const Redirection: React.FC = () => {
             .catch(() => setIsAdmin(false));
     }, []);
 
+    // Gestion du tooltip "pas encore dispo"
+    const notAvailable = (e: React.MouseEvent<HTMLButtonElement>) => {
+        e.preventDefault();
+    };
+
     return (
         <div className='redirection-container'>
-            {/* <button onClick={() => navigate('/arene-pve')}>Arène PVE</button>
-            <button onClick={() => navigate('/arene-pvp')}>Arène PVP</button>
-            <button onClick={() => navigate('/histoire')}>Mode Histoire</button>
-            <button onClick={() => navigate('/donjons')}>Mode Donjons</button> */}
-            <button className='bouton-redirect' onClick={() => navigate('/Invocation')}>Invocation</button>
+            <button
+                className='bouton-redirect-disabled'
+                onClick={notAvailable}
+                style={{ cursor: 'not-allowed' }}
+            >
+                Arène PVE (pas encore dispo)
+            </button>
+            <button
+                className='bouton-redirect-disabled'
+                onClick={notAvailable}
+                style={{ cursor: 'not-allowed' }}
+            >
+                Arène PVP (pas encore dispo)
+            </button>
+            <button
+                className='bouton-redirect-disabled'
+                onClick={notAvailable}
+                style={{ cursor: 'not-allowed' }}
+            >
+                Mode Histoire (pas encore dispo)
+            </button>
+            <button
+                className='bouton-redirect-disabled'
+                onClick={notAvailable}
+                style={{ cursor: 'not-allowed' }}
+            >
+                Mode Donjons (pas encore dispo)
+            </button>
+            <button
+                className='bouton-redirect'
+                onClick={() => navigate('/Invocation')}
+            >
+                Invocation
+            </button>
             {isAdmin && (
-                <button className='bouton-redirect' onClick={() => navigate('/Admin')}>Page Admin</button>
+                <button
+                    className='bouton-redirect'
+                    onClick={() => navigate('/Admin')}
+                >
+                    Page Admin
+                </button>
             )}
         </div>
     );
