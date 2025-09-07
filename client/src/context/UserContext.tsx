@@ -22,7 +22,6 @@ interface UserProviderProps {
     children: ReactNode;
 }
 
-// Création du contexte avec des valeurs par défaut
 const UserContext = createContext<UserContextType>({
     isLoggedIn: false,
     isAdmin: false,
@@ -33,119 +32,90 @@ const UserContext = createContext<UserContextType>({
     checkSession: async () => { },
 });
 
-// Hook personnalisé pour utiliser le contexte
 export const useUser = () => useContext(UserContext);
 
-// Provider qui va englober l'application
 export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
-    const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
-    const [isAdmin, setIsAdmin] = useState<boolean>(false);
-    const [loading, setLoading] = useState<boolean>(true);
+    const [isLoggedIn, setIsLoggedIn] = useState(false);
+    const [isAdmin, setIsAdmin] = useState(false);
+    const [loading, setLoading] = useState(true);
     const [user, setUser] = useState<UserData | null>(null);
 
-    // Fonction pour vérifier la session utilisateur
-    const checkSession = async () => {
-        console.log("Vérification de session...");
+    const resetUser = () => {
+        setIsLoggedIn(false);
+        setIsAdmin(false);
+        setUser(null);
+    };
 
+    const checkSession = async () => {
+        setLoading(true);
         try {
             const response = await fetch(`${API_URL}/user/me`, {
                 method: 'GET',
                 credentials: 'include'
             });
+            const data = response.ok ? await response.json() : null;
 
-            console.log("Réponse status:", response.status);
-
-            if (response.ok) {
-                const data = await response.json();
-                console.log("Données de session:", data);
-
-                if (data.success) {
-                    setIsLoggedIn(true);
-                    setIsAdmin(data.isAdmin || false);
-                    setUser({
-                        userId: data.userId,
-                        pseudo: data.pseudo,
-                        isAdmin: data.isAdmin || false
-                    });
-                } else {
-                    setIsLoggedIn(false);
-                    setUser(null);
-                }
+            if (data?.success) {
+                setIsLoggedIn(true);
+                setIsAdmin(!!data.isAdmin);
+                setUser({
+                    userId: data.userId,
+                    pseudo: data.pseudo,
+                    isAdmin: !!data.isAdmin
+                });
             } else {
-                console.log("Échec de vérification de session");
-                setIsLoggedIn(false);
-                setUser(null);
+                resetUser();
             }
         } catch (error) {
             console.error('Erreur lors de la vérification de session:', error);
-            setIsLoggedIn(false);
-            setUser(null);
+            resetUser();
         } finally {
             setLoading(false);
         }
     };
 
-    // Vérification de session au chargement
     useEffect(() => {
         checkSession();
     }, []);
 
-    // Fonction de connexion
-    const login = async (pseudo: string, password: string): Promise<{ success: boolean, error?: string }> => {
+    const login = async (pseudo: string, password: string) => {
         try {
-            console.log("Tentative de connexion pour:", pseudo);
-
             const response = await fetch(`${API_URL}/user/login`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
+                headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
                 body: JSON.stringify({ pseudo, password }),
             });
-
-            console.log("Statut de réponse de connexion:", response.status);
-
             const data = await response.json();
-            console.log("Données de connexion:", data);
 
             if (data.success) {
-                // Mise à jour du contexte avec les informations utilisateur
                 setIsLoggedIn(true);
-                setIsAdmin(data.isAdmin || false);
-
+                setIsAdmin(!!data.isAdmin);
                 setUser({
                     userId: data.userId,
-                    pseudo: pseudo,
-                    isAdmin: data.isAdmin || false
+                    pseudo,
+                    isAdmin: !!data.isAdmin
                 });
-
                 return { success: true };
-            } else {
-                return { success: false, error: data.error || 'Identifiants invalides' };
             }
+            resetUser();
+            return { success: false, error: data.error || 'Identifiants invalides' };
         } catch (error) {
             console.error('Erreur lors de la connexion:', error);
+            resetUser();
             return { success: false, error: 'Erreur de connexion au serveur' };
         }
     };
 
-    // Fonction de déconnexion
-    const logout = async (): Promise<void> => {
+    const logout = async () => {
         try {
             const response = await fetch(`${API_URL}/logout`, {
                 method: 'POST',
                 credentials: 'include',
-                headers: {
-                    'Content-Type': 'application/json'
-                }
+                headers: { 'Content-Type': 'application/json' }
             });
-
             if (response.ok) {
-                // Réinitialiser le contexte
-                setIsLoggedIn(false);
-                setIsAdmin(false);
-                setUser(null);
+                resetUser();
             } else {
                 console.error('Erreur lors de la déconnexion:', await response.text());
             }
@@ -154,7 +124,6 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
         }
     };
 
-    // Valeurs fournies par le contexte
     const value = {
         isLoggedIn,
         isAdmin,

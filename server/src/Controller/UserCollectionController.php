@@ -180,6 +180,14 @@ final class UserCollectionController extends AbstractController
             ];
         }, $collection);
 
+        // Tri par étoiles décroissantes puis par ID croissant
+        usort($data, function($a, $b) {
+            if ($a['star'] === $b['star']) {
+                return $a['heroId'] <=> $b['heroId'];
+            }
+            return $b['star'] <=> $a['star'];
+        });
+
         return new JsonResponse($data, 200, [
             'Access-Control-Allow-Origin' => 'http://localhost:3000',
             'Access-Control-Allow-Credentials' => 'true'
