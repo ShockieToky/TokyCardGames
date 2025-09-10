@@ -44,7 +44,7 @@
 /* Affichage collection à droite des boutons, bien espacé */
 .collection-container {
     position: absolute;
-    top: 250px;
+    top: 175px;
     right: 15%;
     width: 750px;
     min-height: 500px;
@@ -57,6 +57,11 @@
     align-items: center;
     /* Espace avec les boutons à gauche */
     margin-left: 80px;
+}
+
+.collection-info {
+    margin-bottom: 12px;
+    font-weight: 500;
 }
 
 .collection-container h2 {

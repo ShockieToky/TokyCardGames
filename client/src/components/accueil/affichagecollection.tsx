@@ -54,6 +54,7 @@ const AffichageCollection: React.FC = () => {
     return (
         <div className="collection-container">
             <h2>Ma collection</h2>
+            <div className='collection-info'> Nombre de héros possédés : {collection.length}</div>
             {loading ? (
                 <div>Chargement...</div>
             ) : (

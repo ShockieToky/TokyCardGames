@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 
 const HEROES_API = "http://localhost:8000/heroes";
+const USER_COLLECTION_API = "http://localhost:8000/user/collection";
 
 type Props = {
     scrollId: number | null;
@@ -9,6 +10,18 @@ type Props = {
 const ListeDispo: React.FC<Props> = ({ scrollId }) => {
     const [heroes, setHeroes] = useState<{ id: number, name: string, star: number }[]>([]);
     const [loading, setLoading] = useState(false);
+    const [ownedHeroIds, setOwnedHeroIds] = useState<Set<number>>(new Set());
+
+    useEffect(() => {
+        // Récupère la collection de l'utilisateur
+        fetch(USER_COLLECTION_API, { credentials: "include" })
+            .then(res => res.json())
+            .then(collection => {
+                // On stocke tous les IDs des héros possédés (doublons possibles, on s'en fiche)
+                setOwnedHeroIds(new Set(collection.map((h: any) => h.heroId)));
+            })
+            .catch(() => setOwnedHeroIds(new Set()));
+    }, []);
 
     useEffect(() => {
         if (!scrollId) {
@@ -57,7 +70,10 @@ const ListeDispo: React.FC<Props> = ({ scrollId }) => {
                 <ul>
                     {heroes.map(hero => (
                         <li key={hero.id}>
-                            {hero.name} <span style={{ color: "#3949ab" }}>({hero.star}★)</span>
+                            <span style={{ color: ownedHeroIds.has(hero.id) ? "red" : undefined }}>
+                                {hero.name}
+                            </span>{" "}
+                            <span style={{ color: "#3949ab" }}>({hero.star}★)</span>
                         </li>
                     ))}
                 </ul>
