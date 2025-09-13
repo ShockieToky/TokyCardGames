@@ -167,15 +167,14 @@ class CombatRulesService
     /**
      * Trouve un combattant par son ID (retourne une référence).
      */
-    private function &findFighterById(array &$fighters, $id)
+    private function findFighterById(array $fighters, int $id): ?Fighter
     {
-        foreach ($fighters as &$f) {
-            if ($f['id'] === $id) {
-                return $f;
+        foreach ($fighters as $fighter) {
+            if ($fighter->id === $id) {
+                return $fighter;
             }
         }
-        $null = null;
-        return $null;
+        return null;
     }
 
     /**
