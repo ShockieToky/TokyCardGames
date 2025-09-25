@@ -9,11 +9,11 @@ class CombatRulesService
     private AttackService $attackService;
     private EffectService $effectService;
     
-    public function __construct(AttackService $attackService)
+    public function __construct(AttackService $attackService, EffectService $effectService)
     {
         $this->attackService = $attackService;
+        $this->effectService = $effectService;
     }
-
     /**
      * Convertit un objet Hero en combattant pour le système de combat.
      */
@@ -167,14 +167,15 @@ class CombatRulesService
     /**
      * Trouve un combattant par son ID (retourne une référence).
      */
-    private function findFighterById(array $fighters, int $id): ?Fighter
+    private function &findFighterById(array &$fighters, int $id): ?array
     {
-        foreach ($fighters as $fighter) {
-            if ($fighter->id === $id) {
+        foreach ($fighters as &$fighter) {
+            if ($fighter['id'] === $id) {
                 return $fighter;
             }
         }
-        return null;
+        $null = null;
+        return $null;
     }
 
     /**
