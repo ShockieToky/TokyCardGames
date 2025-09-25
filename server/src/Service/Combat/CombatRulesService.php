@@ -6,10 +6,10 @@ use App\Entity\Hero;
 
 class CombatRulesService
 {
-    private AttackService $attackService;
+    private AttackRulesService $attackService;
     private EffectService $effectService;
     
-    public function __construct(AttackService $attackService, EffectService $effectService)
+    public function __construct(AttackRulesService $attackService, EffectService $effectService)
     {
         $this->attackService = $attackService;
         $this->effectService = $effectService;

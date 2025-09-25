@@ -1,5 +1,5 @@
 <?php
-// filepath: c:\Users\AYMERICK\Documents\GitHub\TokyCardGames\server\src\Service\Combat\AttackService.php
+// filepath: c:\Users\AYMERICK\Documents\GitHub\TokyCardGames\server\src\Service\Combat\AttackRulesService.php
 
 namespace App\Service\Combat;
 
@@ -9,7 +9,7 @@ use App\Entity\SkillEffect;
 use App\Repository\HeroSkillRepository;
 use App\Repository\SkillEffectRepository;
 
-class AttackService
+class AttackRulesService
 {
     private EffectService $effectService;
     private SkillEffectRepository $skillEffectRepository;

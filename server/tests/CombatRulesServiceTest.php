@@ -4,7 +4,7 @@
 namespace App\Tests\Service\Combat;
 
 use App\Entity\Hero;
-use App\Service\Combat\AttackService;
+use App\Service\Combat\AttackRulesService;
 use App\Service\Combat\CombatRulesService;
 use App\Service\Combat\EffectService;
 use PHPUnit\Framework\TestCase;
@@ -12,22 +12,20 @@ use PHPUnit\Framework\TestCase;
 class CombatRulesServiceTest extends TestCase
 {
     private CombatRulesService $combatRulesService;
-    private AttackService $mockAttackService;
+    private AttackRulesService $mockAttackService;
     private EffectService $mockEffectService;
     
     protected function setUp(): void
     {
         // Créer des mocks pour les services dépendants
-        $this->mockAttackService = $this->createMock(AttackService::class);
+        $this->mockAttackService = $this->createMock(AttackRulesService::class);
         $this->mockEffectService = $this->createMock(EffectService::class);
         
-        // Injecter le mock AttackService dans le constructeur
-        $this->combatRulesService = new CombatRulesService($this->mockAttackService);
-        
-        // Injecter le mock EffectService via réflexion (car il manque dans le constructeur)
-        $reflectionProperty = new \ReflectionProperty(CombatRulesService::class, 'effectService');
-        $reflectionProperty->setAccessible(true);
-        $reflectionProperty->setValue($this->combatRulesService, $this->mockEffectService);
+        // Injecter le mock AttackRulesService dans le constructeur
+        $this->combatRulesService = new CombatRulesService(
+            $this->mockAttackService, 
+            $this->mockEffectService
+        );
     }
     
     /**
