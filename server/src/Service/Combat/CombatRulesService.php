@@ -1,5 +1,5 @@
 <?php
-// filepath: c:\Users\AYMERICK\Documents\GitHub\TokyCardGames\server\src\Service\Combat\CombatRulesService.php
+
 namespace App\Service\Combat;
 
 use App\Entity\Hero;
