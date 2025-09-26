@@ -23,7 +23,7 @@ interface Hero {
 interface Fighter extends Hero {
     hp: number;
     maxHp: number;
-    alive: boolean;
+    alive: boolean; // Changé de 'isAlive' à 'alive' pour correspondre au backend
     team: 'A' | 'B';
     skills: Skill[];
 }
@@ -53,7 +53,6 @@ const ZoneCombat: React.FC<ZoneCombatProps> = ({ teamA, teamB, onBackToSelection
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string>('');
     const [selectedSkill, setSelectedSkill] = useState<Skill | null>(null);
-    const [selectedTarget, setSelectedTarget] = useState<number | string | null>(null);
 
     // Initialiser le combat côté backend
     useEffect(() => {
@@ -109,13 +108,16 @@ const ZoneCombat: React.FC<ZoneCombatProps> = ({ teamA, teamB, onBackToSelection
             });
             if (response.ok) {
                 const data = await response.json();
+                console.log('Action exécutée, nouvel état:', data);
                 setCombatState(data);
                 setSelectedSkill(null);
-                setSelectedTarget(null);
             } else {
+                const errorText = await response.text();
+                console.error('Erreur action:', errorText);
                 setError("Erreur lors de l'action");
             }
         } catch (e) {
+            console.error('Erreur connexion action:', e);
             setError('Erreur de connexion au serveur');
         }
         setLoading(false);
@@ -158,8 +160,34 @@ const ZoneCombat: React.FC<ZoneCombatProps> = ({ teamA, teamB, onBackToSelection
         );
     }
 
+    // Trouver le combattant dont c'est le tour
     const currentFighter = combatState.fighters[combatState.currentTurn];
     const isUserTurn = currentFighter && currentFighter.alive;
+
+    // Vérifier si le combat est terminé
+    if (combatState.winner) {
+        return (
+            <div className="zone-combat-container">
+                <div className="combat-header">
+                    <h1>🏆 Combat terminé !</h1>
+                    <h2>L'équipe {combatState.winner} a gagné !</h2>
+                    <button onClick={onBackToSelection} className="back-btn">
+                        ← Retour à la sélection
+                    </button>
+                </div>
+                <div className="combat-log">
+                    <h3>📜 Journal du Combat</h3>
+                    <div className="log-container">
+                        {combatState.logs.slice(-10).map((log, i) => (
+                            <div key={i} className="log-entry">
+                                {log.message}
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="zone-combat-container">
@@ -169,7 +197,7 @@ const ZoneCombat: React.FC<ZoneCombatProps> = ({ teamA, teamB, onBackToSelection
                 </button>
                 <h1>⚔️ Combat en cours</h1>
                 <div className="combat-info">
-                    Phase: {combatState.phase} | Tour: {combatState.currentTurn + 1}
+                    Phase: {combatState.phase} | Tour de: {currentFighter?.name || 'En attente'}
                 </div>
             </div>
 
@@ -190,7 +218,9 @@ const ZoneCombat: React.FC<ZoneCombatProps> = ({ teamA, teamB, onBackToSelection
                                                     style={{ width: `${(f.hp / f.maxHp) * 100}%` }}
                                                 ></div>
                                             </div>
-                                            <div className="hp-text">{f.alive ? 'En vie' : 'KO'}</div>
+                                            <div className="hp-text">
+                                                {f.hp}/{f.maxHp} PV - {f.alive ? 'En vie' : 'KO'}
+                                            </div>
                                         </div>
                                         {currentFighter?.id === f.id && (
                                             <div className="turn-marker">🎯 Votre tour</div>
@@ -217,7 +247,9 @@ const ZoneCombat: React.FC<ZoneCombatProps> = ({ teamA, teamB, onBackToSelection
                                                     style={{ width: `${(f.hp / f.maxHp) * 100}%` }}
                                                 ></div>
                                             </div>
-                                            <div className="hp-text">{f.alive ? 'En vie' : 'KO'}</div>
+                                            <div className="hp-text">
+                                                {f.hp}/{f.maxHp} PV - {f.alive ? 'En vie' : 'KO'}
+                                            </div>
                                         </div>
                                         {currentFighter?.id === f.id && (
                                             <div className="turn-marker">🎯 Votre tour</div>
