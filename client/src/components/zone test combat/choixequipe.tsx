@@ -32,15 +32,19 @@ const ChoixEquipe: React.FC<ChoixEquipeProps> = ({ onStartCombat }) => {
     const fetchHeroes = async () => {
         try {
             setLoading(true);
-            const response = await fetch('http://localhost:8000/api/heroes');
+            // CORRECTION : Changé l'URL pour correspondre au HeroController
+            const response = await fetch('http://localhost:8000/heroes');
             if (response.ok) {
                 const heroes = await response.json();
+                console.log('Héros chargés:', heroes);
                 setAvailableHeroes(heroes);
             } else {
                 setError('Impossible de charger les héros');
+                console.error('Erreur HTTP:', response.status);
             }
         } catch (err) {
             setError('Erreur de connexion');
+            console.error('Erreur de fetch:', err);
         } finally {
             setLoading(false);
         }
@@ -71,6 +75,8 @@ const ChoixEquipe: React.FC<ChoixEquipeProps> = ({ onStartCombat }) => {
             setError('Chaque équipe doit avoir exactement 4 héros');
             return;
         }
+
+        console.log('Équipes sélectionnées:', { teamA, teamB });
 
         // Effacer les erreurs
         setError('');
