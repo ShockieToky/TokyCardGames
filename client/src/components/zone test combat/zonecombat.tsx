@@ -6,6 +6,9 @@ interface Skill {
     id: number | string;
     name: string;
     cooldown?: number;
+    is_passive?: boolean;
+    available?: boolean;
+    description?: string;
 }
 
 interface Hero {
@@ -270,11 +273,15 @@ const ZoneCombat: React.FC<ZoneCombatProps> = ({ teamA, teamB, onBackToSelection
                             {currentFighter.skills.map((skill: Skill) => (
                                 <button
                                     key={skill.id}
-                                    onClick={() => setSelectedSkill(skill)}
-                                    disabled={(skill.cooldown !== undefined && skill.cooldown > 0) || !currentFighter.alive}
-                                    className={`skill-btn ${selectedSkill?.id === skill.id ? 'selected' : ''} ${(skill.cooldown !== undefined && skill.cooldown > 0) ? 'on-cooldown' : ''}`}
+                                    onClick={() => skill.available && !skill.is_passive ? setSelectedSkill(skill) : null}
+                                    disabled={!skill.available || skill.is_passive || !currentFighter.alive}
+                                    className={`skill-btn ${selectedSkill?.id === skill.id ? 'selected' : ''} ${!skill.available || skill.is_passive ? 'disabled' : ''
+                                        } ${skill.cooldown && skill.cooldown > 0 ? 'on-cooldown' : ''} ${skill.is_passive ? 'passive-skill' : ''
+                                        }`}
+                                    title={skill.is_passive ? 'Compétence passive - ne peut pas être lancée' : skill.description}
                                 >
                                     {skill.name}
+                                    {skill.is_passive && <span className="passive-indicator"> [PASSIF]</span>}
                                     {skill.cooldown && skill.cooldown > 0 && (
                                         <span className="cooldown"> ({skill.cooldown} tours)</span>
                                     )}
@@ -283,7 +290,7 @@ const ZoneCombat: React.FC<ZoneCombatProps> = ({ teamA, teamB, onBackToSelection
                         </div>
                     </div>
 
-                    {selectedSkill && (
+                    {selectedSkill && !selectedSkill.is_passive && (
                         <div className="targets-section">
                             <h4>Choisir une cible pour : {selectedSkill.name}</h4>
                             <div className="targets-grid">

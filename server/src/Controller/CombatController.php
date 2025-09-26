@@ -176,7 +176,8 @@ class CombatController extends AbstractController
                     'targeting' => $heroSkill->getTargeting(),
                     'targeting_team' => $heroSkill->getTargetingTeam(),
                     'does_damage' => $heroSkill->getDoesDamage(),
-                    'available' => $currentCooldown <= 0 && !$heroSkill->getIsPassive() // Disponible si cooldown = 0 et pas passif
+                    // Un skill est disponible si : pas en cooldown ET pas passif
+                    'available' => $currentCooldown <= 0 && !$heroSkill->getIsPassive()
                 ];
             }
             
@@ -207,6 +208,7 @@ class CombatController extends AbstractController
                 'multiplicator' => 1.0,
                 'does_damage' => true,
                 'targeting_team' => 'enemy',
+                'is_passive' => false,
                 'available' => true
             ]
         ];
@@ -267,8 +269,14 @@ class CombatController extends AbstractController
             if (is_numeric($data['skillId'])) {
                 $skill = $this->heroSkillRepository->find($data['skillId']);
                 
-                // Vérifier si le skill est disponible (pas en cooldown)
+                // Vérifier si le skill est disponible
                 if ($skill) {
+                    // Vérifier si c'est un skill passif
+                    if ($skill->getIsPassive()) {
+                        return new JsonResponse(['error' => 'Cannot use passive skills'], Response::HTTP_BAD_REQUEST);
+                    }
+                    
+                    // Vérifier le cooldown
                     $currentCooldown = $combatState['skillCooldowns'][$attacker['id']][$skill->getId()] ?? 0;
                     if ($currentCooldown > 0) {
                         return new JsonResponse(['error' => 'Skill is on cooldown'], Response::HTTP_BAD_REQUEST);
@@ -371,7 +379,7 @@ class CombatController extends AbstractController
                 ];
             }
         } else {
-            // Skill de support/soin - garder l'ancienne logique ou adapter selon tes besoins
+            // Skill de support/soin
             $scaling = $this->calculateScaling($skill, $attacker);
             $healAmount = (int)round($multiplicator * $scaling);
             $target['hp'] += $healAmount;
