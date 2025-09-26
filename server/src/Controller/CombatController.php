@@ -82,14 +82,24 @@ class CombatController extends AbstractController
                     ['message' => 'Le combat commence !', 'timestamp' => time()]
                 ],
                 'winner' => null,
-                'heroMapping' => [] // Pour stocker la correspondance fighter -> hero
+                'heroMapping' => [], // Pour stocker la correspondance fighter -> hero
+                'skillCooldowns' => [] // Pour gérer les cooldowns des skills par fighter
             ];
 
-            // Créer la correspondance fighters -> héros pour récupérer les skills
+            // Créer la correspondance fighters -> héros et initialiser les cooldowns
             foreach ($fullCombatState['fighters'] as $fighter) {
                 foreach (array_merge($teamAHeroes, $teamBHeroes) as $hero) {
                     if ($hero->getId() == $fighter['heroId']) {
                         $fullCombatState['heroMapping'][$fighter['id']] = $hero;
+                        
+                        // Initialiser les cooldowns des skills du fighter
+                        $heroSkills = $this->heroSkillRepository->findBy(['hero' => $hero]);
+                        $fullCombatState['skillCooldowns'][$fighter['id']] = [];
+                        
+                        foreach ($heroSkills as $skill) {
+                            // Utiliser initial_cooldown au début du combat
+                            $fullCombatState['skillCooldowns'][$fighter['id']][$skill->getId()] = $skill->getInitialCooldown();
+                        }
                         break;
                     }
                 }
@@ -122,7 +132,7 @@ class CombatController extends AbstractController
                         'resistance' => $fighter['resistance'],
                         'star' => $fighter['star'],
                         'type' => $fighter['type'],
-                        'skills' => $hero ? $this->getHeroRealSkills($hero) : $this->getDefaultSkills()
+                        'skills' => $hero ? $this->getHeroRealSkills($hero, $fighter['id'], $fullCombatState) : $this->getDefaultSkills()
                     ];
                 }, $fullCombatState['fighters']),
                 'currentTurn' => $this->getCurrentTurnIndex($fullCombatState),
@@ -139,9 +149,9 @@ class CombatController extends AbstractController
     }
 
     /**
-     * Récupère les vrais skills d'un héros depuis la BDD
+     * Récupère les vrais skills d'un héros avec leurs cooldowns actuels
      */
-    private function getHeroRealSkills(\App\Entity\Hero $hero): array
+    private function getHeroRealSkills(\App\Entity\Hero $hero, int $fighterId, array $combatState): array
     {
         try {
             // Récupérer les skills du héros depuis la BDD
@@ -149,11 +159,15 @@ class CombatController extends AbstractController
             
             $skills = [];
             foreach ($heroSkills as $heroSkill) {
+                // Récupérer le cooldown actuel pour ce fighter
+                $currentCooldown = $combatState['skillCooldowns'][$fighterId][$heroSkill->getId()] ?? 0;
+                
                 $skills[] = [
                     'id' => $heroSkill->getId(),
                     'name' => $heroSkill->getName(),
                     'description' => $heroSkill->getDescription(),
-                    'cooldown' => $heroSkill->getCooldown(),
+                    'cooldown' => $currentCooldown, // Cooldown actuel
+                    'max_cooldown' => $heroSkill->getCooldown(), // Cooldown max après utilisation
                     'initial_cooldown' => $heroSkill->getInitialCooldown(),
                     'multiplicator' => $heroSkill->getMultiplicator(),
                     'scaling' => $heroSkill->getScaling(),
@@ -161,7 +175,8 @@ class CombatController extends AbstractController
                     'is_passive' => $heroSkill->getIsPassive(),
                     'targeting' => $heroSkill->getTargeting(),
                     'targeting_team' => $heroSkill->getTargetingTeam(),
-                    'does_damage' => $heroSkill->getDoesDamage()
+                    'does_damage' => $heroSkill->getDoesDamage(),
+                    'available' => $currentCooldown <= 0 && !$heroSkill->getIsPassive() // Disponible si cooldown = 0 et pas passif
                 ];
             }
             
@@ -188,9 +203,11 @@ class CombatController extends AbstractController
                 'name' => 'Attaque Basique',
                 'description' => 'Une attaque physique simple',
                 'cooldown' => 0,
+                'max_cooldown' => 0,
                 'multiplicator' => 1.0,
                 'does_damage' => true,
-                'targeting_team' => 'enemy'
+                'targeting_team' => 'enemy',
+                'available' => true
             ]
         ];
     }
@@ -249,12 +266,20 @@ class CombatController extends AbstractController
             $skill = null;
             if (is_numeric($data['skillId'])) {
                 $skill = $this->heroSkillRepository->find($data['skillId']);
+                
+                // Vérifier si le skill est disponible (pas en cooldown)
+                if ($skill) {
+                    $currentCooldown = $combatState['skillCooldowns'][$attacker['id']][$skill->getId()] ?? 0;
+                    if ($currentCooldown > 0) {
+                        return new JsonResponse(['error' => 'Skill is on cooldown'], Response::HTTP_BAD_REQUEST);
+                    }
+                }
             }
 
             // Exécuter l'action avec le vrai skill
             $this->executeSkillAction($skill, $attacker, $target, $combatState);
 
-            // Passer au tour suivant
+            // Passer au tour suivant et gérer les cooldowns
             $this->advanceTurn($combatState);
 
             // Vérifier si le combat est terminé
@@ -288,7 +313,7 @@ class CombatController extends AbstractController
                         'resistance' => $fighter['resistance'],
                         'star' => $fighter['star'],
                         'type' => $fighter['type'],
-                        'skills' => $hero ? $this->getHeroRealSkills($hero) : $this->getDefaultSkills()
+                        'skills' => $hero ? $this->getHeroRealSkills($hero, $fighter['id'], $combatState) : $this->getDefaultSkills()
                     ];
                 }, $combatState['fighters']),
                 'currentTurn' => $this->getCurrentTurnIndex($combatState),
@@ -318,20 +343,17 @@ class CombatController extends AbstractController
         $multiplicator = $skill->getMultiplicator();
         $doesDamage = $skill->getDoesDamage();
         
+        // Mettre le skill en cooldown après utilisation
+        $combatState['skillCooldowns'][$attacker['id']][$skill->getId()] = $skill->getCooldown();
+        
         if ($doesDamage) {
-            // Calcul des dégâts avec le multiplicateur du skill
-            $baseDamage = $attacker['attack'] - $target['defense'] / 2;
-            $damage = max(1, $baseDamage * $multiplicator);
-            $damage = (int)round($damage);
-            
-            // Appliquer les hits multiples si défini
+            // Nouvelle formule : dmg = hits_number * (multiplicator * scaling * (1000/(1000 - defense)))
             $hitsNumber = $skill->getHitsNumber() ?? 1;
-            $totalDamage = 0;
+            $scaling = $this->calculateScaling($skill, $attacker);
+            $defenseReduction = 1000 / (1000 - $target['defense']);
             
-            for ($i = 0; $i < $hitsNumber; $i++) {
-                $hitDamage = max(1, $damage / $hitsNumber);
-                $totalDamage += $hitDamage;
-            }
+            $damage = $hitsNumber * ($multiplicator * $scaling * $defenseReduction);
+            $totalDamage = max(1, (int)round($damage));
             
             $target['hp'] -= $totalDamage;
             
@@ -349,8 +371,9 @@ class CombatController extends AbstractController
                 ];
             }
         } else {
-            // Skill de support/soin
-            $healAmount = (int)round($attacker['attack'] * $multiplicator);
+            // Skill de support/soin - garder l'ancienne logique ou adapter selon tes besoins
+            $scaling = $this->calculateScaling($skill, $attacker);
+            $healAmount = (int)round($multiplicator * $scaling);
             $target['hp'] += $healAmount;
             
             if ($target['hp'] > $target['maxHp']) {
@@ -367,25 +390,73 @@ class CombatController extends AbstractController
     }
 
     /**
-     * Attaque basique de fallback
+     * Calcule le scaling d'un skill selon les stats de l'attaquant
+     */
+    private function calculateScaling($skill, array $attacker): float
+    {
+        $scalingData = json_decode($skill->getScaling(), true);
+        
+        // Si pas de scaling défini, utiliser l'attaque par défaut
+        if (!$scalingData || empty($scalingData)) {
+            return $attacker['attack'];
+        }
+        
+        $totalScaling = 0;
+        
+        // Parcourir chaque scaling défini
+        foreach ($scalingData as $stat => $coefficient) {
+            switch ($stat) {
+                case 'attack':
+                case 'atk':
+                    $totalScaling += $attacker['attack'] * $coefficient;
+                    break;
+                case 'defense':
+                case 'def':
+                    $totalScaling += $attacker['defense'] * $coefficient;
+                    break;
+                case 'speed':
+                case 'vit':
+                    $totalScaling += $attacker['speed'] * $coefficient;
+                    break;
+                case 'resistance':
+                case 'res':
+                    $totalScaling += $attacker['resistance'] * $coefficient;
+                    break;
+                case 'hp':
+                    $totalScaling += $attacker['maxHp'] * $coefficient;
+                    break;
+                default:
+                    // Si stat inconnue, ignorer
+                    break;
+            }
+        }
+        
+        // Si aucun scaling valide trouvé, utiliser l'attaque
+        return $totalScaling > 0 ? $totalScaling : $attacker['attack'];
+    }
+
+    /**
+     * Attaque basique de fallback avec la nouvelle formule
      */
     private function executeBasicAttack(array &$attacker, array &$target, array &$combatState): bool
     {
-        $damage = max(1, $attacker['attack'] - $target['defense'] / 2);
-        $damage = (int)round($damage);
+        // Attaque basique : hits_number = 1, multiplicator = 1, scaling = attack
+        $defenseReduction = 1000 / (1000 - $target['defense']);
+        $damage = 1 * (1 * $attacker['attack'] * $defenseReduction);
+        $totalDamage = max(1, (int)round($damage));
         
-        $target['hp'] -= $damage;
+        $target['hp'] -= $totalDamage;
         
         if ($target['hp'] <= 0) {
             $target['hp'] = 0;
             $target['isAlive'] = false;
             $combatState['logs'][] = [
-                'message' => "{$attacker['name']} utilise Attaque Basique sur {$target['name']} et inflige {$damage} dégâts. {$target['name']} est KO !",
+                'message' => "{$attacker['name']} utilise Attaque Basique sur {$target['name']} et inflige {$totalDamage} dégâts. {$target['name']} est KO !",
                 'timestamp' => time()
             ];
         } else {
             $combatState['logs'][] = [
-                'message' => "{$attacker['name']} utilise Attaque Basique sur {$target['name']} et inflige {$damage} dégâts. ({$target['hp']}/{$target['maxHp']} PV restants)",
+                'message' => "{$attacker['name']} utilise Attaque Basique sur {$target['name']} et inflige {$totalDamage} dégâts. ({$target['hp']}/{$target['maxHp']} PV restants)",
                 'timestamp' => time()
             ];
         }
@@ -418,7 +489,7 @@ class CombatController extends AbstractController
     }
 
     /**
-     * Fait avancer le tour au prochain combattant
+     * Fait avancer le tour au prochain combattant et gère les cooldowns
      */
     private function advanceTurn(array &$combatState): void
     {
@@ -453,13 +524,24 @@ class CombatController extends AbstractController
             }
         }
 
-        // Si tous ont joué, recommencer un nouveau tour
+        // Si tous ont joué, recommencer un nouveau tour et réduire les cooldowns
         if ($allPlayed) {
             $combatState['turn'] = ($combatState['turn'] ?? 1) + 1;
             $combatState['currentTurnOrder'] = $this->combatRulesService->getAttackOrder($combatState['fighters']);
+            
+            // Réinitialiser hasPlayed et réduire les cooldowns
             foreach ($combatState['fighters'] as $fighter) {
                 if ($fighter['isAlive']) {
                     $combatState['hasPlayed'][$fighter['id']] = false;
+                    
+                    // Réduire les cooldowns de ce fighter
+                    if (isset($combatState['skillCooldowns'][$fighter['id']])) {
+                        foreach ($combatState['skillCooldowns'][$fighter['id']] as $skillId => $cooldown) {
+                            if ($cooldown > 0) {
+                                $combatState['skillCooldowns'][$fighter['id']][$skillId] = $cooldown - 1;
+                            }
+                        }
+                    }
                 }
             }
             

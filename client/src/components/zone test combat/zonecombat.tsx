@@ -271,12 +271,12 @@ const ZoneCombat: React.FC<ZoneCombatProps> = ({ teamA, teamB, onBackToSelection
                                 <button
                                     key={skill.id}
                                     onClick={() => setSelectedSkill(skill)}
-                                    disabled={!!skill.cooldown || !currentFighter.alive}
-                                    className={`skill-btn ${selectedSkill?.id === skill.id ? 'selected' : ''}`}
+                                    disabled={(skill.cooldown !== undefined && skill.cooldown > 0) || !currentFighter.alive}
+                                    className={`skill-btn ${selectedSkill?.id === skill.id ? 'selected' : ''} ${(skill.cooldown !== undefined && skill.cooldown > 0) ? 'on-cooldown' : ''}`}
                                 >
                                     {skill.name}
                                     {skill.cooldown && skill.cooldown > 0 && (
-                                        <span className="cooldown"> (CD: {skill.cooldown})</span>
+                                        <span className="cooldown"> ({skill.cooldown} tours)</span>
                                     )}
                                 </button>
                             ))}
