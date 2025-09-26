@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import '../../styles/choixequipe.css';
+import '../../styles/zonecombat.css';
 
 // Typages robustes
 interface Skill {
@@ -62,7 +62,6 @@ const ZoneCombat: React.FC<ZoneCombatProps> = ({ teamA, teamB, onBackToSelection
             setLoading(true);
             setError('');
             try {
-                // CORRECTION : Changé l'URL pour correspondre au CombatController
                 const response = await fetch('http://localhost:8000/combat/start', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },

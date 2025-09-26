@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import '../../styles/choixequipe.css';
+import '../../styles/zonecombat.css';
 
 interface Hero {
     id: number;
@@ -32,7 +32,7 @@ const ChoixEquipe: React.FC<ChoixEquipeProps> = ({ onStartCombat }) => {
     const fetchHeroes = async () => {
         try {
             setLoading(true);
-            // CORRECTION : Changé l'URL pour correspondre au HeroController
+            // CORRECTION : URL avec /api/
             const response = await fetch('http://localhost:8000/heroes');
             if (response.ok) {
                 const heroes = await response.json();

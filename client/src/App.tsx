@@ -5,6 +5,8 @@ import Accueil from './pages/Accueil';
 import Admin from './pages/Admin';
 import Invocation from './pages/Invocation';
 import ZoneCombat from './pages/TestCombat';
+import ArenaCombat from './pages/ArenaCombat';
+
 import './App.css';
 
 // Composant de routes protégées qui utilise le contexte
@@ -36,6 +38,10 @@ const AppRoutes = () => {
       <Route
         path="/ZoneCombat"
         element={isLoggedIn ? <ZoneCombat /> : <Navigate to="/" replace />}
+      />
+
+      <Route path="/arena-combat"
+        element={isLoggedIn ? <ArenaCombat /> : <Navigate to="/" replace />}
       />
 
       {/* Route Admin - vérifier si l'utilisateur est admin */}
