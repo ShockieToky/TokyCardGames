@@ -2,8 +2,209 @@
 
 namespace App\Service\Combat;
 
+use App\Entity\SkillEffect;
+use Doctrine\ORM\EntityManagerInterface;
+
 class EffectService
 {
+    private EntityManagerInterface $entityManager;
+
+    public function __construct(EntityManagerInterface $entityManager)
+    {
+        $this->entityManager = $entityManager;
+    }
+
+    /**
+     * Applique les effets d'un skill depuis la BDD
+     */
+    public function applySkillEffects($skill, array &$attacker, array &$target, array &$logs, array &$allFighters): void
+    {
+        // Récupérer les effets du skill depuis la BDD
+        $skillEffectRepository = $this->entityManager->getRepository(SkillEffect::class);
+        $skillEffects = $skillEffectRepository->findBy(['skill' => $skill]);
+        
+        foreach ($skillEffects as $skillEffect) {
+            // Vérifier la chance de proc
+            $chance = $skillEffect->getChance();
+            if (rand(1, 100) > $chance) {
+                $this->addCombatLog($logs, "L'effet {$skillEffect->getEffectType()} de {$skill->getName()} ne se déclenche pas ({$chance}% de chance)");
+                continue; // L'effet ne se déclenche pas
+            }
+            
+            // Déterminer la cible selon target_side
+            $effectTarget = null;
+            $targetSide = $skillEffect->getTargetSide();
+            
+            switch ($targetSide) {
+                case 'self':
+                    $effectTarget = &$attacker;
+                    break;
+                case 'ally':
+                    // Pour les skills ciblant un allié, utiliser un allié aléatoire vivant
+                    $allies = array_filter($allFighters, function($f) use ($attacker) {
+                        return $f['team'] === $attacker['team'] && $f['isAlive'] && $f['id'] !== $attacker['id'];
+                    });
+                    if (!empty($allies)) {
+                        $randomAlly = array_rand($allies);
+                        $effectTarget = &$allFighters[$randomAlly];
+                    } else {
+                        // Si pas d'allié disponible, se cibler soi-même
+                        $effectTarget = &$attacker;
+                    }
+                    break;
+                case 'enemy':
+                default:
+                    $effectTarget = &$target;
+                    break;
+            }
+            
+            if (!$effectTarget) {
+                $this->addCombatLog($logs, "Aucune cible valide pour l'effet {$skillEffect->getEffectType()}");
+                continue;
+            }
+            
+            // Calculer la valeur de l'effet (avec scaling si défini)
+            $value = $skillEffect->getValue();
+            $scaleOnJson = $skillEffect->getScaleOn();
+            
+            if ($scaleOnJson && $scaleOnJson !== '{}') {
+                $scaleOn = json_decode($scaleOnJson, true);
+                
+                if ($scaleOn && is_array($scaleOn)) {
+                    $scaledValue = 0;
+                    foreach ($scaleOn as $stat => $coefficient) {
+                        switch (strtolower($stat)) {
+                            case 'attack':
+                            case 'atk':
+                                $scaledValue += $attacker['attack'] * $coefficient;
+                                break;
+                            case 'defense':
+                            case 'def':
+                                $scaledValue += $attacker['defense'] * $coefficient;
+                                break;
+                            case 'speed':
+                            case 'vit':
+                                $scaledValue += $attacker['speed'] * $coefficient;
+                                break;
+                            case 'resistance':
+                            case 'res':
+                                $scaledValue += $attacker['resistance'] * $coefficient;
+                                break;
+                            case 'hp':
+                                $scaledValue += $attacker['maxHp'] * $coefficient;
+                                break;
+                        }
+                    }
+                    if ($scaledValue > 0) {
+                        $value = $scaledValue;
+                    }
+                }
+            }
+            
+            // Appliquer l'effet
+            $this->addCombatLog($logs, "Application de l'effet {$skillEffect->getEffectType()} avec valeur {$value} pour {$skillEffect->getDuration()} tours");
+            
+            $this->applyEffectByType(
+                $skillEffect->getEffectType(),
+                $effectTarget,
+                $logs,
+                $attacker,
+                $value,
+                $skillEffect->getDuration(),
+                $scaleOnJson
+            );
+        }
+    }
+
+    public function applyEffectByType(string $effectType, array &$target, array &$logs, array &$caster = null, $value = null, int $duration = 1, ?string $scaleOn = null): void
+    {
+        switch ($effectType) {
+            // BUFFS DE STATISTIQUES
+            case 'buff_hp':
+                $this->buffHp($target, $logs, $duration, $value);
+                break;
+            case 'buff_defense':
+                $this->buffDefense($target, $logs, $duration, $value);
+                break;
+            case 'buff_attack':
+                $this->buffAttack($target, $logs, $duration, $value);
+                break;
+            case 'buff_speed':
+                $this->buffSpeed($target, $logs, $duration, $value);
+                break;
+            case 'buff_resistance':
+                $this->buffResistance($target, $logs, $duration, $value);
+                break;
+                
+            // DÉBUFFS DE STATISTIQUES
+            case 'debuff_defense':
+                $this->debuffDefense($target, $logs, $duration, $value);
+                break;
+            case 'debuff_speed':
+                $this->debuffSpeed($target, $logs, $duration, $value);
+                break;
+            case 'debuff_attack':
+                $this->debuffAttack($target, $logs, $duration, $value);
+                break;
+            case 'debuff_resistance':
+                $this->debuffResistance($target, $logs, $duration, $value);
+                break;
+                
+            // EFFETS SPÉCIAUX POSITIFS
+            case 'shield':
+                if ($caster) {
+                    $this->applyShield($target, $caster, $logs, $duration, $value);
+                }
+                break;
+            case 'protection':
+                if ($caster) {
+                    $this->applyProtection($target, $caster, $logs, $duration);
+                }
+                break;
+            case 'lifesteal':
+                $this->applyLifesteal($target, $logs, $duration, $value);
+                break;
+            case 'counter':
+                $this->applyCounter($target, $logs, $duration, $value);
+                break;
+            case 'resurrection':
+                $this->applyResurrection($target, $logs, $duration, $value);
+                break;
+                
+            // EFFETS NÉGATIFS
+            case 'stun':
+                $this->applyStun($target, $logs, $duration);
+                break;
+            case 'silence':
+                $this->applySilence($target, $logs, $duration);
+                break;
+            case 'nullify':
+                $this->applyNullify($target, $logs, $duration);
+                break;
+            case 'blocker':
+                $this->applyBlocker($target, $logs, $duration);
+                break;
+            case 'damage_over_time':
+            case 'dot':
+                $this->applyDamageOverTime($target, $logs, $duration, $value);
+                break;
+            case 'taunt':
+                if ($caster) {
+                    $this->applyTaunt($target, $caster, $logs, $duration);
+                }
+                break;
+            case 'heal_reverse':
+                $this->applyHealReverse($target, $logs, $duration);
+                break;
+            case 'freeze':
+                $this->applyFreeze($target, $logs, $duration);
+                break;
+                
+            default:
+                $this->addCombatLog($logs, "Effet inconnu : {$effectType}");
+                break;
+        }
+    }
     /**
      * Crée un nouvel effet de statut.
      */
@@ -16,7 +217,7 @@ class EffectService
             'value' => $value,
             'duration' => $duration,
             'stat' => $stat,
-            'stackable' => $type !== 'buff' // Exemple: les buffs ne sont généralement pas cumulables
+            'stackable' => $type !== 'buff'
         ];
     }
 
@@ -75,7 +276,7 @@ class EffectService
     }
     
     /**
-     * EFFETS SPÉCIAUX PLUS COMPLEXES
+     * EFFETS SPÉCIAUX POSITIFS
      */
     
     /**
@@ -83,8 +284,7 @@ class EffectService
      */
     public function applyShield(array &$target, array &$caster, array &$logs, int $duration = 2, ?int $customValue = null): void
     {
-        // Si customValue est fourni, utilisez-le, sinon calculez à partir des PV du lanceur
-        $shieldValue = $customValue ?? intval($caster['maxHp'] * 0.20); // 20% des PV max par défaut
+        $shieldValue = $customValue ?? intval($caster['maxHp'] * 0.20);
         
         $effect = $this->createEffect('shield', 'Bouclier', $shieldValue, $duration);
         $this->applyEffect($target, $effect, $logs);
@@ -95,7 +295,6 @@ class EffectService
      */
     public function applyProtection(array &$target, array &$caster, array &$logs, int $duration = 2): void
     {
-        // Stocke l'ID du protecteur
         $effect = $this->createEffect('protection', 'Protection', $caster['id'], $duration);
         $this->applyEffect($target, $effect, $logs);
     }
@@ -105,7 +304,7 @@ class EffectService
      */
     public function applyLifesteal(array &$target, array &$logs, int $duration = 3, ?int $customValue = null): void
     {
-        $lifestealPercent = $customValue ?? 15; // 15% par défaut
+        $lifestealPercent = $customValue ?? 15;
         $effect = $this->createEffect('lifesteal', 'Soif de sang', $lifestealPercent, $duration);
         $this->applyEffect($target, $effect, $logs);
     }
@@ -115,23 +314,205 @@ class EffectService
      */
     public function applyCounter(array &$target, array &$logs, int $duration = 3, ?int $customValue = null): void
     {
-        $counterChance = $customValue ?? 25; // 25% par défaut
+        $counterChance = $customValue ?? 25;
         $effect = $this->createEffect('counter', 'Contre', $counterChance, $duration);
         $this->applyEffect($target, $effect, $logs);
     }
     
     /**
      * Sauvetage: Revient à la vie avec 15% des PV max
-     * Note: Cet effet est particulier car il s'active à la mort
      */
     public function applyResurrection(array &$target, array &$logs, int $duration = 3, ?int $customValue = null): void
     {
-        $resurrectionPercent = $customValue ?? 15; // 15% par défaut
+        $resurrectionPercent = $customValue ?? 15;
         $effect = $this->createEffect('resurrection', 'Sauvetage', $resurrectionPercent, $duration);
         $this->applyEffect($target, $effect, $logs);
     }
     
     /**
+     * EFFETS NÉGATIFS (DEBUFFS)
+     */
+    
+    /**
+     * Étourdissement: la cible ne peut pas attaquer pendant 1 tour
+     */
+    public function applyStun(array &$target, array &$logs, int $duration = 1): void
+    {
+        $effect = $this->createEffect('stun', 'Étourdissement', 1, $duration);
+        $this->applyEffect($target, $effect, $logs);
+    }
+    
+    /**
+     * Silence: la cible ne peut utiliser que son sort 1 pendant X tour
+     */
+    public function applySilence(array &$target, array &$logs, int $duration = 2): void
+    {
+        $effect = $this->createEffect('silence', 'Silence', 1, $duration);
+        $this->applyEffect($target, $effect, $logs);
+    }
+    
+    /**
+     * Annulation: la cible ne peut pas utiliser/proc son passif pendant X tour
+     */
+    public function applyNullify(array &$target, array &$logs, int $duration = 2): void
+    {
+        $effect = $this->createEffect('nullify', 'Annulation', 1, $duration);
+        $this->applyEffect($target, $effect, $logs);
+    }
+    
+    /**
+     * Bloqueur: la cible ne peut pas gagner d'effet de la part de ses alliés pendant X tour
+     */
+    public function applyBlocker(array &$target, array &$logs, int $duration = 2): void
+    {
+        $effect = $this->createEffect('blocker', 'Bloqueur', 1, $duration);
+        $this->applyEffect($target, $effect, $logs);
+    }
+    
+    /**
+     * Dégâts continus: 5% des PV de la cible en dégâts en début de tour pendant X tour
+     */
+    public function applyDamageOverTime(array &$target, array &$logs, int $duration = 3, ?int $customPercent = null): void
+    {
+        $damagePercent = $customPercent ?? 5; // 5% par défaut
+        $effect = $this->createEffect('damage_over_time', 'Dégâts continus', $damagePercent, $duration);
+        $this->applyEffect($target, $effect, $logs);
+    }
+    
+    /**
+     * Provocation: la cible adverse doit attaquer le lanceur du sort pendant X tour
+     */
+    public function applyTaunt(array &$target, array &$caster, array &$logs, int $duration = 2): void
+    {
+        $effect = $this->createEffect('taunt', 'Provocation', $caster['id'], $duration);
+        $this->applyEffect($target, $effect, $logs);
+    }
+    
+    /**
+     * Soins Mortels: la cible adverse perd des PV si elle est soignée pendant X tour
+     */
+    public function applyHealReverse(array &$target, array &$logs, int $duration = 2): void
+    {
+        $effect = $this->createEffect('heal_reverse', 'Soins Mortels', 1, $duration);
+        $this->applyEffect($target, $effect, $logs);
+    }
+    
+    /**
+     * Gel: la cible ne peut pas attaquer pendant 1 tour
+     */
+    public function applyFreeze(array &$target, array &$logs, int $duration = 1): void
+    {
+        $effect = $this->createEffect('freeze', 'Gel', 1, $duration);
+        $this->applyEffect($target, $effect, $logs);
+    }
+
+    /**
+     * MÉTHODES DE VÉRIFICATION DES EFFETS NÉGATIFS
+     */
+    
+    /**
+     * Vérifie si un combattant est étourdi ou gelé (ne peut pas attaquer)
+     */
+    public function isStunnedOrFrozen(array &$fighter): bool
+    {
+        foreach ($fighter['statusEffects'] as $effect) {
+            if ($effect['type'] === 'stun' || $effect['type'] === 'freeze') {
+                return true;
+            }
+        }
+        return false;
+    }
+    
+    /**
+     * Vérifie si un combattant est silencé (ne peut utiliser que le sort 1)
+     */
+    public function isSilenced(array &$fighter): bool
+    {
+        foreach ($fighter['statusEffects'] as $effect) {
+            if ($effect['type'] === 'silence') {
+                return true;
+            }
+        }
+        return false;
+    }
+    
+    /**
+     * Vérifie si un combattant a ses passifs annulés
+     */
+    public function isNullified(array &$fighter): bool
+    {
+        foreach ($fighter['statusEffects'] as $effect) {
+            if ($effect['type'] === 'nullify') {
+                return true;
+            }
+        }
+        return false;
+    }
+    
+    /**
+     * Vérifie si un combattant est bloqué (ne peut pas recevoir d'effets d'alliés)
+     */
+    public function isBlocked(array &$fighter): bool
+    {
+        foreach ($fighter['statusEffects'] as $effect) {
+            if ($effect['type'] === 'blocker') {
+                return true;
+            }
+        }
+        return false;
+    }
+    
+    /**
+     * Vérifie si un combattant est provoqué et retourne l'ID du provoqueur
+     */
+    public function getTauntTarget(array &$fighter): ?int
+    {
+        foreach ($fighter['statusEffects'] as $effect) {
+            if ($effect['type'] === 'taunt') {
+                return $effect['value']; // ID du provoqueur
+            }
+        }
+        return null;
+    }
+    
+    /**
+     * Vérifie si un combattant a l'effet Soins Mortels
+     */
+    public function hasHealReverse(array &$fighter): bool
+    {
+        foreach ($fighter['statusEffects'] as $effect) {
+            if ($effect['type'] === 'heal_reverse') {
+                return true;
+            }
+        }
+        return false;
+    }
+    
+    /**
+     * Applique l'effet de soins inversés (transforme les soins en dégâts)
+     */
+    public function applyHealReverseEffect(array &$target, int $healAmount, array &$logs): int
+    {
+        if ($this->hasHealReverse($target)) {
+            $damage = $healAmount;
+            $target['hp'] -= $damage;
+            
+            $this->addCombatLog($logs, "Les soins se transforment en poison ! {$target['name']} (#{$target['id']}) subit {$damage} dégâts !");
+            
+            // Vérifier si le combattant meurt
+            if ($target['hp'] <= 0) {
+                $target['hp'] = 0;
+                $target['isAlive'] = false;
+                $this->addCombatLog($logs, "{$target['name']} (#{$target['id']}) est mort à cause des soins empoisonnés !");
+            }
+            
+            return $damage; // Retourne les dégâts infligés au lieu des soins
+        }
+        
+        return 0; // Aucun effet
+    }
+    
+   /**
      * Méthode principale de traitement des effets, mise à jour pour gérer les nouveaux effets
      */
     public function processEffects(array &$fighters, array &$logs): void
@@ -161,8 +542,15 @@ class EffectService
                         $this->addCombatLog($logs, "{$fighter['name']} (#{$fighter['id']}) récupère {$heal} points de vie");
                         break;
                         
+                    case 'damage_over_time':
+                        $damagePercent = $effect['value'];
+                        $damage = intval($fighter['maxHp'] * ($damagePercent / 100));
+                        $fighter['hp'] -= $damage;
+                        $this->addCombatLog($logs, "{$fighter['name']} (#{$fighter['id']}) subit {$damage} dégâts continus ({$damagePercent}% de ses PV max)");
+                        break;
+                        
                     // Les autres types d'effets sont traités à d'autres moments du combat
-                    // (shield lors de la prise de dégâts, lifesteal lors de l'attaque, etc.)
+                    // (stun/freeze lors du choix d'action, silence lors du choix de skill, etc.)
                 }
                 
                 // Réduire la durée de l'effet
@@ -175,6 +563,15 @@ class EffectService
                     // Pour les buffs, restaurer les stats originales
                     if ($effect['type'] === 'buff' && isset($effect['stat'])) {
                         $fighter[$effect['stat']] -= $effect['value'];
+                        $this->addCombatLog($logs, "L'effet {$effect['name']} s'estompe pour {$fighter['name']} (#{$fighter['id']})");
+                    }
+                    // Pour les débuffs, restaurer les stats originales
+                    elseif ($effect['type'] === 'debuff' && isset($effect['stat'])) {
+                        $fighter[$effect['stat']] += $effect['value'];
+                        $this->addCombatLog($logs, "L'effet {$effect['name']} s'estompe pour {$fighter['name']} (#{$fighter['id']})");
+                    }
+                    else {
+                        // Pour les autres effets, juste annoncer la fin
                         $this->addCombatLog($logs, "L'effet {$effect['name']} s'estompe pour {$fighter['name']} (#{$fighter['id']})");
                     }
                 }
@@ -195,6 +592,87 @@ class EffectService
                 $this->checkForResurrection($fighter, $logs);
             }
         }
+    }
+
+     /**
+     * MÉTHODES POUR LES DÉBUFFS DE STATISTIQUES
+     */
+    
+    /**
+     * Réduction Défense: -15% de défense
+     */
+    public function debuffDefense(array &$target, array &$logs, int $duration = 3, ?int $customValue = null): void
+    {
+        $reduction = $customValue ?? intval($target['defense'] * 0.15);
+        $effect = $this->createEffect('debuff', 'Défense affaiblie', $reduction, $duration, 'defense');
+        $this->applyEffect($target, $effect, $logs);
+    }
+
+    /**
+     * Réduction Vitesse: -15% de vitesse
+     */
+    public function debuffSpeed(array &$target, array &$logs, int $duration = 3, ?int $customValue = null): void
+    {
+        $reduction = $customValue ?? intval($target['speed'] * 0.15);
+        $effect = $this->createEffect('debuff', 'Ralentissement', $reduction, $duration, 'speed');
+        $this->applyEffect($target, $effect, $logs);
+    }
+
+    /**
+     * Réduction Attaque: -20% d'attaque
+     */
+    public function debuffAttack(array &$target, array &$logs, int $duration = 3, ?int $customValue = null): void
+    {
+        $reduction = $customValue ?? intval($target['attack'] * 0.20);
+        $effect = $this->createEffect('debuff', 'Faiblesse', $reduction, $duration, 'attack');
+        $this->applyEffect($target, $effect, $logs);
+    }
+
+    /**
+     * Réduction Résistance: -20 de résistance
+     */
+    public function debuffResistance(array &$target, array &$logs, int $duration = 3, ?int $customValue = null): void
+    {
+        $reduction = $customValue ?? 20;
+        $effect = $this->createEffect('debuff', 'Vulnérabilité', $reduction, $duration, 'resistance');
+        $this->applyEffect($target, $effect, $logs);
+    }
+    
+    /**
+     * Applique un effet à un combattant en vérifiant les blocages
+     */
+     private function applyEffect(array &$target, array $effect, array &$logs): void
+    {
+        // Vérifier si la cible peut recevoir des effets (pas de blocker pour les effets bénéfiques d'alliés)
+        if ($effect['type'] === 'buff' || $effect['type'] === 'shield' || $effect['type'] === 'protection') {
+            if ($this->isBlocked($target)) {
+                $this->addCombatLog($logs, "{$target['name']} (#{$target['id']}) ne peut pas recevoir l'effet {$effect['name']} (Bloqueur actif)");
+                return;
+            }
+        }
+        
+        // Initialiser statusEffects si pas encore fait
+        if (!isset($target['statusEffects'])) {
+            $target['statusEffects'] = [];
+        }
+        
+        // Ajouter l'effet
+        $target['statusEffects'][] = $effect;
+        
+        // Pour les buffs, appliquer immédiatement l'effet
+        if ($effect['type'] === 'buff' && isset($effect['stat'])) {
+            $target[$effect['stat']] += $effect['value'];
+        }
+        // Pour les débuffs, réduire immédiatement l'effet
+        elseif ($effect['type'] === 'debuff' && isset($effect['stat'])) {
+            $target[$effect['stat']] -= $effect['value'];
+            // S'assurer que les stats ne deviennent pas négatives
+            if ($target[$effect['stat']] < 0) {
+                $target[$effect['stat']] = 0;
+            }
+        }
+        
+        $this->addCombatLog($logs, "{$target['name']} (#{$target['id']}) reçoit l'effet {$effect['name']} !");
     }
     
     /**
@@ -224,9 +702,6 @@ class EffectService
     
     /**
      * Applique l'effet du bouclier lors de la prise de dégâts
-     * Cette méthode doit être appelée par AttackService avant d'infliger des dégâts
-     * 
-     * @return int Les dégâts restants après absorption par le bouclier
      */
     public function applyShieldEffect(array &$target, int $damage, array &$logs): int
     {
@@ -255,9 +730,6 @@ class EffectService
     
     /**
      * Recherche un protecteur pour la cible
-     * Cette méthode doit être appelée par AttackService avant d'infliger des dégâts
-     * 
-     * @return array|null Le protecteur si trouvé, null sinon
      */
     public function findProtector(array &$target, array &$fighters): ?array
     {
@@ -279,7 +751,6 @@ class EffectService
     
     /**
      * Applique l'effet de vol de vie après une attaque réussie
-     * Cette méthode doit être appelée par AttackService après avoir infligé des dégâts
      */
     public function applyLifestealEffect(array &$attacker, int $damageDealt, array &$logs): void
     {
@@ -288,8 +759,13 @@ class EffectService
                 $healAmount = intval($damageDealt * ($effect['value'] / 100));
                 
                 if ($healAmount > 0) {
-                    $attacker['hp'] = min($attacker['hp'] + $healAmount, $attacker['maxHp']);
-                    $this->addCombatLog($logs, "{$attacker['name']} (#{$attacker['id']}) récupère {$healAmount} PV grâce à Soif de sang!");
+                    // Vérifier si l'attaquant a des soins inversés
+                    if ($this->hasHealReverse($attacker)) {
+                        $this->applyHealReverseEffect($attacker, $healAmount, $logs);
+                    } else {
+                        $attacker['hp'] = min($attacker['hp'] + $healAmount, $attacker['maxHp']);
+                        $this->addCombatLog($logs, "{$attacker['name']} (#{$attacker['id']}) récupère {$healAmount} PV grâce à Soif de sang!");
+                    }
                 }
             }
         }
@@ -297,9 +773,6 @@ class EffectService
     
     /**
      * Vérifie si le combattant doit contre-attaquer
-     * Cette méthode doit être appelée par AttackService après une attaque subie
-     * 
-     * @return bool True si le combattant doit contre-attaquer
      */
     public function shouldCounterAttack(array &$target, array &$logs): bool
     {

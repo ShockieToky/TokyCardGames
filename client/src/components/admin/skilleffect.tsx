@@ -20,20 +20,31 @@ interface SkillEffectsProps {
 
 // Constantes pour les valeurs et durées prédéfinies
 const BUFF_VALUES = {
-    // Effets positifs
+    // Effets positifs (buffs)
     buff_hp: 10, // 10% des PV max
     buff_defense: 10, // 10% de la DEF max
     buff_attack: 10, // 10% de l'ATK max
     buff_speed: 15, // 15% de la VIT max
     buff_resistance: 25, // +25 de résistance (valeur fixe)
 
-    // Effets négatifs
+    // Effets négatifs (débuffs)
+    debuff_defense: 15, // -15% de défense
+    debuff_speed: 15, // -15% de vitesse  
+    debuff_attack: 20, // -20% d'attaque
+    debuff_resistance: 20, // -20 de résistance
+
+    // Effets spéciaux
     dot: 5, // 5% des PV max en dégâts continus
+    shield: 20, // 20% des PV du lanceur
+    lifesteal: 15, // 15% de vol de vie
+    counter: 25, // 25% de chance de contre
+    resurrection: 15, // 15% des PV pour résurrection
 };
 
 // Durées fixes pour certains effets
 const FIXED_DURATIONS = {
     stun: 1, // Le stun dure toujours 1 tour
+    freeze: 1, // Le gel dure toujours 1 tour
 };
 
 const SkillEffects: React.FC<SkillEffectsProps> = ({ skillId, onEffectChange }) => {
@@ -250,25 +261,27 @@ const SkillEffects: React.FC<SkillEffectsProps> = ({ skillId, onEffectChange }) 
                                         <option value="buff_attack">Buff Attaque (+10%)</option>
                                         <option value="buff_speed">Buff Vitesse (+15%)</option>
                                         <option value="buff_resistance">Buff Résistance (+25)</option>
-                                        <option value="shield">Bouclier</option>
+                                        <option value="shield">Bouclier (20% PV lanceur)</option>
                                         <option value="protection">Protection</option>
-                                        <option value="bloodthirst">Soif de sang</option>
-                                        <option value="counter">Contre</option>
-                                        <option value="rescue">Sauvetage</option>
+                                        <option value="lifesteal">Soif de sang (15%)</option>
+                                        <option value="counter">Contre (25%)</option>
+                                        <option value="resurrection">Sauvetage (15%)</option>
                                     </optgroup>
 
                                     {/* Effets négatifs */}
                                     <optgroup label="Effets négatifs">
-                                        <option value="debuff_attack">Débuff Attaque</option>
-                                        <option value="debuff_defense">Débuff Défense</option>
-                                        <option value="debuff_speed">Débuff Vitesse</option>
+                                        <option value="debuff_attack">Débuff Attaque (-20%)</option>
+                                        <option value="debuff_defense">Débuff Défense (-15%)</option>
+                                        <option value="debuff_speed">Débuff Vitesse (-15%)</option>
+                                        <option value="debuff_resistance">Débuff Résistance (-20)</option>
                                         <option value="stun">Étourdissement (1 tour)</option>
                                         <option value="silence">Silence</option>
-                                        <option value="block">Bloqueur</option>
+                                        <option value="nullify">Annulation</option>
+                                        <option value="blocker">Bloqueur</option>
                                         <option value="taunt">Provocation</option>
-                                        <option value="heal_block">Soins Mortels</option>
-                                        <option value="dot">Dégâts continus (5% PV)</option>
-                                        <option value="cancel">Annulation</option>
+                                        <option value="heal_reverse">Soins Mortels</option>
+                                        <option value="damage_over_time">Dégâts continus (5% PV)</option>
+                                        <option value="freeze">Gel (1 tour)</option>
                                     </optgroup>
                                 </select>
                             </div>

@@ -10,6 +10,7 @@ use Symfony\Component\HttpFoundation\JsonResponse;
 use Doctrine\ORM\EntityManagerInterface;
 use App\Service\Combat\CombatRulesService;
 use App\Repository\HeroSkillRepository;
+use App\Service\Combat\EffectService;
 
 class CombatController extends AbstractController
 {
@@ -20,11 +21,15 @@ class CombatController extends AbstractController
     public function __construct(
         EntityManagerInterface $entityManager,
         CombatRulesService $combatRulesService,
-        HeroSkillRepository $heroSkillRepository
+        HeroSkillRepository $heroSkillRepository,
+        SkillEffectRepository $skillEffectRepository,
+        EffectService $effectService
     ) {
         $this->entityManager = $entityManager;
         $this->combatRulesService = $combatRulesService;
         $this->heroSkillRepository = $heroSkillRepository;
+        $this->skillEffectRepository = $skillEffectRepository;
+        $this->effectService = $effectService;
     }
 
     #[Route('/combat/start', name: 'combat_start', methods: ['POST', 'OPTIONS'])]
@@ -88,6 +93,7 @@ class CombatController extends AbstractController
 
             // Créer la correspondance fighters -> héros et initialiser les cooldowns
             foreach ($fullCombatState['fighters'] as $fighter) {
+                $fighter['statusEffects'] = []; // Initialiser les effets de statut
                 foreach (array_merge($teamAHeroes, $teamBHeroes) as $hero) {
                     if ($hero->getId() == $fighter['heroId']) {
                         $fullCombatState['heroMapping'][$fighter['id']] = $hero;
@@ -184,6 +190,32 @@ class CombatController extends AbstractController
             // Si aucun skill n'est trouvé, ajouter une attaque basique par défaut
             if (empty($skills)) {
                 return $this->getDefaultSkills();
+            }
+            $fighter = null;
+            foreach ($combatState['fighters'] as $f) {
+                if ($f['id'] === $fighterId) {
+                    $fighter = $f;
+                    break;
+                }
+            }
+            
+            if ($fighter) {
+                foreach ($skills as &$skill) {
+                    // Vérifier le silence (ne peut utiliser que le premier skill)
+                    if ($this->effectService->isSilenced($fighter)) {
+                        $isFirstSkill = ($skill === reset($skills));
+                        $skill['available'] = $skill['available'] && $isFirstSkill;
+                        if (!$isFirstSkill) {
+                            $skill['silenced'] = true;
+                        }
+                    }
+                    
+                    // Vérifier l'étourdissement ou le gel
+                    if ($this->effectService->isStunnedOrFrozen($fighter)) {
+                        $skill['available'] = false;
+                        $skill['stunned'] = true;
+                    }
+                }
             }
             
             return $skills;
@@ -343,7 +375,6 @@ class CombatController extends AbstractController
     private function executeSkillAction($skill, array &$attacker, array &$target, array &$combatState): bool
     {
         if (!$skill) {
-            // Attaque basique par défaut
             return $this->executeBasicAttack($attacker, $target, $combatState);
         }
 
@@ -355,7 +386,7 @@ class CombatController extends AbstractController
         $combatState['skillCooldowns'][$attacker['id']][$skill->getId()] = $skill->getCooldown();
         
         if ($doesDamage) {
-            // Nouvelle formule : dmg = hits_number * (multiplicator * scaling * (1000/(1000 - defense)))
+            // Calcul des dégâts avec la nouvelle formule
             $hitsNumber = $skill->getHitsNumber() ?? 1;
             $scaling = $this->calculateScaling($skill, $attacker);
             $defenseReduction = 1000 / (1000 - $target['defense']);
@@ -363,38 +394,73 @@ class CombatController extends AbstractController
             $damage = $hitsNumber * ($multiplicator * $scaling * $defenseReduction);
             $totalDamage = max(1, (int)round($damage));
             
-            $target['hp'] -= $totalDamage;
+            // Vérifier la protection avant d'appliquer les dégâts
+            $protector = $this->effectService->findProtector($target, $combatState['fighters']);
+            if ($protector) {
+                $target = &$protector; // Le protecteur prend les dégâts
+                $this->addCombatLog($combatState['logs'], "{$protector['name']} protège {$target['name']} et prend les dégâts à sa place !");
+            }
+            
+            // Appliquer l'effet de bouclier
+            $finalDamage = $this->effectService->applyShieldEffect($target, $totalDamage, $combatState['logs']);
+            
+            $target['hp'] -= $finalDamage;
             
             if ($target['hp'] <= 0) {
                 $target['hp'] = 0;
                 $target['isAlive'] = false;
                 $combatState['logs'][] = [
-                    'message' => "{$attacker['name']} utilise {$skillName} sur {$target['name']} et inflige {$totalDamage} dégâts" . ($hitsNumber > 1 ? " en {$hitsNumber} coups" : "") . " ! {$target['name']} est KO !",
+                    'message' => "{$attacker['name']} utilise {$skillName} sur {$target['name']} et inflige {$finalDamage} dégâts" . ($hitsNumber > 1 ? " en {$hitsNumber} coups" : "") . " ! {$target['name']} est KO !",
                     'timestamp' => time()
                 ];
             } else {
                 $combatState['logs'][] = [
-                    'message' => "{$attacker['name']} utilise {$skillName} sur {$target['name']} et inflige {$totalDamage} dégâts" . ($hitsNumber > 1 ? " en {$hitsNumber} coups" : "") . " ! ({$target['hp']}/{$target['maxHp']} PV restants)",
+                    'message' => "{$attacker['name']} utilise {$skillName} sur {$target['name']} et inflige {$finalDamage} dégâts" . ($hitsNumber > 1 ? " en {$hitsNumber} coups" : "") . " ! ({$target['hp']}/{$target['maxHp']} PV restants)",
                     'timestamp' => time()
                 ];
             }
+            
+            // Appliquer l'effet de vol de vie
+            $this->effectService->applyLifestealEffect($attacker, $finalDamage, $combatState['logs']);
+            
+            // Vérifier la contre-attaque
+            if ($this->effectService->shouldCounterAttack($target, $combatState['logs'])) {
+                // Logique de contre-attaque à implémenter
+            }
+            
         } else {
             // Skill de support/soin
             $scaling = $this->calculateScaling($skill, $attacker);
             $healAmount = (int)round($multiplicator * $scaling);
-            $target['hp'] += $healAmount;
             
-            if ($target['hp'] > $target['maxHp']) {
-                $target['hp'] = $target['maxHp'];
+            // Vérifier l'effet de soins inversés
+            $healReverseDamage = $this->effectService->applyHealReverseEffect($target, $healAmount, $combatState['logs']);
+            
+            if ($healReverseDamage === 0) {
+                // Soins normaux
+                $target['hp'] += $healAmount;
+                
+                if ($target['hp'] > $target['maxHp']) {
+                    $target['hp'] = $target['maxHp'];
+                }
+                
+                $combatState['logs'][] = [
+                    'message' => "{$attacker['name']} utilise {$skillName} sur {$target['name']} et restaure {$healAmount} PV ! ({$target['hp']}/{$target['maxHp']} PV)",
+                    'timestamp' => time()
+                ];
             }
-            
-            $combatState['logs'][] = [
-                'message' => "{$attacker['name']} utilise {$skillName} sur {$target['name']} et restaure {$healAmount} PV ! ({$target['hp']}/{$target['maxHp']} PV)",
-                'timestamp' => time()
-            ];
         }
+        $this->effectService->applySkillEffects($skill, $attacker, $target, $combatState['logs'], $combatState['fighters']);
         
         return true;
+    }
+
+    private function addCombatLog(array &$logs, string $message): void
+    {
+        $logs[] = [
+            'timestamp' => time(),
+            'message' => $message
+        ];
     }
 
     /**
@@ -534,25 +600,28 @@ class CombatController extends AbstractController
 
         // Si tous ont joué, recommencer un nouveau tour et réduire les cooldowns
         if ($allPlayed) {
-            $combatState['turn'] = ($combatState['turn'] ?? 1) + 1;
-            $combatState['currentTurnOrder'] = $this->combatRulesService->getAttackOrder($combatState['fighters']);
-            
-            // Réinitialiser hasPlayed et réduire les cooldowns
-            foreach ($combatState['fighters'] as $fighter) {
-                if ($fighter['isAlive']) {
-                    $combatState['hasPlayed'][$fighter['id']] = false;
-                    
-                    // Réduire les cooldowns de ce fighter
-                    if (isset($combatState['skillCooldowns'][$fighter['id']])) {
-                        foreach ($combatState['skillCooldowns'][$fighter['id']] as $skillId => $cooldown) {
-                            if ($cooldown > 0) {
-                                $combatState['skillCooldowns'][$fighter['id']][$skillId] = $cooldown - 1;
-                            }
+        $combatState['turn'] = ($combatState['turn'] ?? 1) + 1;
+        
+        // NOUVEAU : Traiter les effets en début de tour
+        $this->effectService->processEffects($combatState['fighters'], $combatState['logs']);
+        
+        $combatState['currentTurnOrder'] = $this->combatRulesService->getAttackOrder($combatState['fighters']);
+        
+        // Réinitialiser hasPlayed et réduire les cooldowns
+        foreach ($combatState['fighters'] as $fighter) {
+            if ($fighter['isAlive']) {
+                $combatState['hasPlayed'][$fighter['id']] = false;
+                
+                // Réduire les cooldowns de ce fighter
+                if (isset($combatState['skillCooldowns'][$fighter['id']])) {
+                    foreach ($combatState['skillCooldowns'][$fighter['id']] as $skillId => $cooldown) {
+                        if ($cooldown > 0) {
+                            $combatState['skillCooldowns'][$fighter['id']][$skillId] = $cooldown - 1;
                         }
                     }
                 }
             }
-            
+        }
             $combatState['logs'][] = [
                 'message' => "--- Tour {$combatState['turn']} ---",
                 'timestamp' => time()
