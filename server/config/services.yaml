@@ -8,6 +8,11 @@ services:
                   event: kernel.response,
                   method: onKernelResponse,
               }
+            - {
+                  name: kernel.event_listener,
+                  event: kernel.request,
+                  method: onKernelRequest,
+              }
     # default configuration for services in *this* file
     _defaults:
         autowire: true # Automatically injects dependencies in your services.

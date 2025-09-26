@@ -10,6 +10,7 @@ use Symfony\Component\HttpFoundation\JsonResponse;
 use Doctrine\ORM\EntityManagerInterface;
 use App\Service\Combat\CombatRulesService;
 use App\Repository\HeroSkillRepository;
+use App\Repository\SkillEffectRepository;
 use App\Service\Combat\EffectService;
 
 class CombatController extends AbstractController
@@ -17,6 +18,8 @@ class CombatController extends AbstractController
     private EntityManagerInterface $entityManager;
     private CombatRulesService $combatRulesService;
     private HeroSkillRepository $heroSkillRepository;
+    private SkillEffectRepository $skillEffectRepository;
+    private EffectService $effectService;
 
     public function __construct(
         EntityManagerInterface $entityManager,
@@ -387,9 +390,9 @@ class CombatController extends AbstractController
         
         if ($doesDamage) {
             // Calcul des dégâts avec la nouvelle formule
-            $hitsNumber = $skill->getHitsNumber() ?? 1;
-            $scaling = $this->calculateScaling($skill, $attacker);
-            $defenseReduction = 1000 / (1000 - $target['defense']);
+            $hitsNumber = $skill->getHitsNumber() ?? 1; //Nombre de coups
+            $scaling = $this->calculateScaling($skill, $attacker); // Scaling basé sur la stat de l'attaque
+            $defenseReduction = 1000 / (1500 + $target['defense']); // Réduction basée sur la défense
             
             $damage = $hitsNumber * ($multiplicator * $scaling * $defenseReduction);
             $totalDamage = max(1, (int)round($damage));
@@ -507,35 +510,6 @@ class CombatController extends AbstractController
         
         // Si aucun scaling valide trouvé, utiliser l'attaque
         return $totalScaling > 0 ? $totalScaling : $attacker['attack'];
-    }
-
-    /**
-     * Attaque basique de fallback avec la nouvelle formule
-     */
-    private function executeBasicAttack(array &$attacker, array &$target, array &$combatState): bool
-    {
-        // Attaque basique : hits_number = 1, multiplicator = 1, scaling = attack
-        $defenseReduction = 1000 / (1000 - $target['defense']);
-        $damage = 1 * (1 * $attacker['attack'] * $defenseReduction);
-        $totalDamage = max(1, (int)round($damage));
-        
-        $target['hp'] -= $totalDamage;
-        
-        if ($target['hp'] <= 0) {
-            $target['hp'] = 0;
-            $target['isAlive'] = false;
-            $combatState['logs'][] = [
-                'message' => "{$attacker['name']} utilise Attaque Basique sur {$target['name']} et inflige {$totalDamage} dégâts. {$target['name']} est KO !",
-                'timestamp' => time()
-            ];
-        } else {
-            $combatState['logs'][] = [
-                'message' => "{$attacker['name']} utilise Attaque Basique sur {$target['name']} et inflige {$totalDamage} dégâts. ({$target['hp']}/{$target['maxHp']} PV restants)",
-                'timestamp' => time()
-            ];
-        }
-        
-        return true;
     }
 
     /**

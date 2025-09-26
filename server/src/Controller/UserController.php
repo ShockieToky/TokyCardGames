@@ -13,16 +13,13 @@ use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 
 class UserController extends AbstractController
 {
-    #[Route('/user/register', name: 'user_register', methods: ['POST', 'OPTIONS'])]
+    #[Route('/user/register', name: 'user_register', methods: ['POST'])]
     public function register(
         Request $request,
         EntityManagerInterface $em,
         UserPasswordHasherInterface $passwordHasher,
         UserRepository $userRepo
     ): JsonResponse {
-        if ($request->getMethod() === 'OPTIONS') {
-            return new JsonResponse([], 200);
-        }
 
         try {
             $data = json_decode($request->getContent(), true);
@@ -60,15 +57,12 @@ class UserController extends AbstractController
         }
     }
 
-    #[Route('/user/login', name: 'user_login', methods: ['POST', 'OPTIONS'])]
+    #[Route('/user/login', name: 'user_login', methods: ['POST'])]
     public function login(
         Request $request,
         UserRepository $userRepo,
         UserPasswordHasherInterface $passwordHasher
     ): JsonResponse {
-        if ($request->getMethod() === 'OPTIONS') {
-            return new JsonResponse([], 200);
-        }
 
         try {
             $data = json_decode($request->getContent(), true);
@@ -105,12 +99,9 @@ class UserController extends AbstractController
         }
     }
 
-    #[Route('/user/me', name: 'user_me', methods: ['GET', 'OPTIONS'])]
+    #[Route('/user/me', name: 'user_me', methods: ['GET'])]
     public function me(Request $request, UserRepository $userRepo): JsonResponse
     {
-        if ($request->getMethod() === 'OPTIONS') {
-            return new JsonResponse([], 200);
-        }
 
         // Récupération et debug de la session
         $session = $request->getSession();
@@ -140,12 +131,9 @@ class UserController extends AbstractController
         ], 200);
     }
 
-    #[Route('/users', name: 'get_users', methods: ['GET', 'OPTIONS'])]
+    #[Route('/users', name: 'get_users', methods: ['GET'])]
     public function getUsers(Request $request, UserRepository $userRepo): JsonResponse
     {
-        if ($request->getMethod() === 'OPTIONS') {
-            return new JsonResponse([], 200);
-        }
 
         $users = $userRepo->findAll();
         $data = array_map(fn($u) => [
@@ -156,12 +144,9 @@ class UserController extends AbstractController
         return new JsonResponse($data, 200);
     }
 
-    #[Route('/logout', name: 'user_logout', methods: ['POST', 'OPTIONS'])]
+    #[Route('/logout', name: 'user_logout', methods: ['POST'])]
     public function logout(Request $request): JsonResponse
     {
-        if ($request->getMethod() === 'OPTIONS') {
-            return new JsonResponse([], 200);
-        }
 
         // Récupérer la session et la vider
         $session = $request->getSession();
@@ -179,12 +164,9 @@ class UserController extends AbstractController
         return new JsonResponse(['success' => true, 'message' => 'Déconnecté avec succès'], 200);
     }
 
-    #[Route('/user/password/update', name: 'user_password_update', methods: ['POST', 'OPTIONS'])]
-    public function updatePassword(Request $request, UserRepository $userRepository, UserPasswordHasherInterface $passwordHasher, EntityManagerInterface $entityManager): JsonResponse
+    #[Route('/user/password/update', name: 'user_password_update', methods: ['POST'])]
+    public function modifyPassword(Request $request, EntityManagerInterface $em, UserRepository $userRepo, UserPasswordHasherInterface $passwordHasher): JsonResponse
     {
-        if ($request->getMethod() === 'OPTIONS') {
-            return new JsonResponse([], 200);
-        }
 
         // Récupérer la session
         $session = $request->getSession();

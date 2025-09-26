@@ -18,7 +18,7 @@ use Symfony\Component\Routing\Attribute\Route;
 
 final class UserCollectionController extends AbstractController
 {
-    #[Route('/user/invoke', name: 'user_invoke_hero', methods: ['POST', 'OPTIONS'])]
+    #[Route('/user/invoke', name: 'user_invoke_hero', methods: ['POST'])]
     public function invokeHero(
         Request $request,
         EntityManagerInterface $em,
@@ -28,21 +28,11 @@ final class UserCollectionController extends AbstractController
         ScrollRateRepository $scrollRateRepo,
         HeroRepository $heroRepo
     ): JsonResponse {
-        if ($request->getMethod() === 'OPTIONS') {
-            return new JsonResponse([], 200, [
-                'Access-Control-Allow-Origin' => 'http://localhost:3000',
-                'Access-Control-Allow-Methods' => 'POST, OPTIONS',
-                'Access-Control-Allow-Headers' => 'Content-Type'
-            ]);
-        }
 
         $session = $request->getSession();
         $userId = $session->get('user_id');
         if (!$userId) {
-            return new JsonResponse(['error' => 'Non connecté'], 401, [
-                'Access-Control-Allow-Origin' => 'http://localhost:3000',
-                'Access-Control-Allow-Credentials' => 'true'
-            ]);
+            return new JsonResponse(['error' => 'Non connecté'], 401);
         }
 
         $data = json_decode($request->getContent(), true);
@@ -50,10 +40,7 @@ final class UserCollectionController extends AbstractController
         $count = isset($data['count']) && is_numeric($data['count']) && $data['count'] > 0 ? (int)$data['count'] : 1;
 
         if (!$scrollId) {
-            return new JsonResponse(['error' => 'Parchemin non spécifié'], 400, [
-                'Access-Control-Allow-Origin' => 'http://localhost:3000',
-                'Access-Control-Allow-Credentials' => 'true'
-            ]);
+            return new JsonResponse(['error' => 'Parchemin non spécifié'], 400);
         }
 
         $user = $userRepo->find($userId);
@@ -213,9 +200,6 @@ final class UserCollectionController extends AbstractController
             return $b['star'] <=> $a['star'];
         });
 
-        return new JsonResponse($data, 200, [
-            'Access-Control-Allow-Origin' => 'http://localhost:3000',
-            'Access-Control-Allow-Credentials' => 'true'
-        ]);
+        return new JsonResponse($data);
     }
 }

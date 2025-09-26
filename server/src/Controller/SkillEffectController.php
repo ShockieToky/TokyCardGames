@@ -14,17 +14,9 @@ use Symfony\Component\Routing\Attribute\Route;
 
 final class SkillEffectController extends AbstractController
 {
-    #[Route('/skill/effects', name: 'get_skill_effects', methods: ['GET', 'OPTIONS'])]
+    #[Route('/skill/effects', name: 'get_skill_effects', methods: ['GET'])]
     public function getEffects(Request $request, SkillEffectRepository $effectRepo): JsonResponse
     {
-        if ($request->getMethod() === 'OPTIONS') {
-            return new JsonResponse([], 200, [
-                'Access-Control-Allow-Origin' => 'http://localhost:3000',
-                'Access-Control-Allow-Methods' => 'GET, OPTIONS',
-                'Access-Control-Allow-Headers' => 'Content-Type'
-            ]);
-        }
-
         $effects = $effectRepo->findAll();
         $data = array_map(function($effect) {
             return [
@@ -41,29 +33,15 @@ final class SkillEffectController extends AbstractController
             ];
         }, $effects);
 
-        return new JsonResponse($data, 200, [
-            'Access-Control-Allow-Origin' => 'http://localhost:3000',
-            'Access-Control-Allow-Credentials' => 'true'
-        ]);
+        return new JsonResponse($data);
     }
 
-    #[Route('/skill/{skillId}/effects', name: 'get_skill_specific_effects', methods: ['GET', 'OPTIONS'])]
+    #[Route('/skill/{skillId}/effects', name: 'get_skill_specific_effects', methods: ['GET'])]
     public function getSkillEffects(Request $request, SkillEffectRepository $effectRepo, HeroSkillRepository $skillRepo, int $skillId): JsonResponse
     {
-        if ($request->getMethod() === 'OPTIONS') {
-            return new JsonResponse([], 200, [
-                'Access-Control-Allow-Origin' => 'http://localhost:3000',
-                'Access-Control-Allow-Methods' => 'GET, OPTIONS',
-                'Access-Control-Allow-Headers' => 'Content-Type'
-            ]);
-        }
-
         $skill = $skillRepo->find($skillId);
         if (!$skill) {
-            return new JsonResponse(['error' => 'Compétence introuvable'], 404, [
-                'Access-Control-Allow-Origin' => 'http://localhost:3000',
-                'Access-Control-Allow-Credentials' => 'true'
-            ]);
+            return new JsonResponse(['error' => 'Compétence introuvable'], 404);
         }
 
         $effects = $effectRepo->findBy(['skill' => $skill]);
@@ -80,29 +58,15 @@ final class SkillEffectController extends AbstractController
             ];
         }, $effects);
 
-        return new JsonResponse($data, 200, [
-            'Access-Control-Allow-Origin' => 'http://localhost:3000',
-            'Access-Control-Allow-Credentials' => 'true'
-        ]);
+        return new JsonResponse($data);
     }
 
-    #[Route('/skill/effect/{id}', name: 'get_skill_effect', methods: ['GET', 'OPTIONS'])]
+    #[Route('/skill/effect/{id}', name: 'get_skill_effect', methods: ['GET'])]
     public function getEffect(Request $request, SkillEffectRepository $effectRepo, int $id): JsonResponse
     {
-        if ($request->getMethod() === 'OPTIONS') {
-            return new JsonResponse([], 200, [
-                'Access-Control-Allow-Origin' => 'http://localhost:3000',
-                'Access-Control-Allow-Methods' => 'GET, OPTIONS',
-                'Access-Control-Allow-Headers' => 'Content-Type'
-            ]);
-        }
-
         $effect = $effectRepo->find($id);
         if (!$effect) {
-            return new JsonResponse(['error' => 'Effet introuvable'], 404, [
-                'Access-Control-Allow-Origin' => 'http://localhost:3000',
-                'Access-Control-Allow-Credentials' => 'true'
-            ]);
+            return new JsonResponse(['error' => 'Effet introuvable'], 404);
         }
 
         $data = [
@@ -118,31 +82,17 @@ final class SkillEffectController extends AbstractController
             'cumulative' => $effect->isCumulative(),
         ];
 
-        return new JsonResponse($data, 200, [
-            'Access-Control-Allow-Origin' => 'http://localhost:3000',
-            'Access-Control-Allow-Credentials' => 'true'
-        ]);
+        return new JsonResponse($data);
     }
 
-    #[Route('/skill/effect/add', name: 'add_skill_effect', methods: ['POST', 'OPTIONS'])]
+    #[Route('/skill/effect/add', name: 'add_skill_effect', methods: ['POST'])]
     public function addEffect(Request $request, EntityManagerInterface $em, HeroSkillRepository $skillRepo): JsonResponse
     {
-        if ($request->getMethod() === 'OPTIONS') {
-            return new JsonResponse([], 200, [
-                'Access-Control-Allow-Origin' => 'http://localhost:3000',
-                'Access-Control-Allow-Methods' => 'POST, OPTIONS',
-                'Access-Control-Allow-Headers' => 'Content-Type'
-            ]);
-        }
-
         $data = json_decode($request->getContent(), true);
 
         $skill = $skillRepo->find($data['skillId'] ?? null);
         if (!$skill) {
-            return new JsonResponse(['error' => 'Compétence introuvable'], 404, [
-                'Access-Control-Allow-Origin' => 'http://localhost:3000',
-                'Access-Control-Allow-Credentials' => 'true'
-            ]);
+            return new JsonResponse(['error' => 'Compétence introuvable'], 404);
         }
 
         $effect = new SkillEffect();
@@ -161,29 +111,15 @@ final class SkillEffectController extends AbstractController
         return new JsonResponse([
             'success' => true,
             'id' => $effect->getId()
-        ], 201, [
-            'Access-Control-Allow-Origin' => 'http://localhost:3000',
-            'Access-Control-Allow-Credentials' => 'true'
-        ]);
+        ], 201);
     }
 
-    #[Route('/skill/effect/{id}/edit', name: 'edit_skill_effect', methods: ['PUT', 'PATCH', 'OPTIONS'])]
+    #[Route('/skill/effect/{id}/edit', name: 'edit_skill_effect', methods: ['PUT', 'PATCH'])]
     public function editEffect(Request $request, EntityManagerInterface $em, SkillEffectRepository $effectRepo, HeroSkillRepository $skillRepo, int $id): JsonResponse
     {
-        if ($request->getMethod() === 'OPTIONS') {
-            return new JsonResponse([], 200, [
-                'Access-Control-Allow-Origin' => 'http://localhost:3000',
-                'Access-Control-Allow-Methods' => 'PUT, PATCH, OPTIONS',
-                'Access-Control-Allow-Headers' => 'Content-Type'
-            ]);
-        }
-
         $effect = $effectRepo->find($id);
         if (!$effect) {
-            return new JsonResponse(['error' => 'Effet introuvable'], 404, [
-                'Access-Control-Allow-Origin' => 'http://localhost:3000',
-                'Access-Control-Allow-Credentials' => 'true'
-            ]);
+            return new JsonResponse(['error' => 'Effet introuvable'], 404);
         }
 
         $data = json_decode($request->getContent(), true);
@@ -191,10 +127,7 @@ final class SkillEffectController extends AbstractController
         if (isset($data['skillId'])) {
             $skill = $skillRepo->find($data['skillId']);
             if (!$skill) {
-                return new JsonResponse(['error' => 'Compétence introuvable'], 404, [
-                    'Access-Control-Allow-Origin' => 'http://localhost:3000',
-                    'Access-Control-Allow-Credentials' => 'true'
-                ]);
+                return new JsonResponse(['error' => 'Compétence introuvable'], 404);
             }
             $effect->setSkill($skill);
         }
@@ -223,37 +156,20 @@ final class SkillEffectController extends AbstractController
 
         $em->flush();
 
-        return new JsonResponse(['success' => true], 200, [
-            'Access-Control-Allow-Origin' => 'http://localhost:3000',
-            'Access-Control-Allow-Credentials' => 'true'
-        ]);
+        return new JsonResponse(['success' => true]);
     }
 
-    #[Route('/skill/effect/{id}/delete', name: 'delete_skill_effect', methods: ['DELETE', 'OPTIONS'])]
+    #[Route('/skill/effect/{id}/delete', name: 'delete_skill_effect', methods: ['DELETE'])]
     public function deleteEffect(Request $request, EntityManagerInterface $em, SkillEffectRepository $effectRepo, int $id): JsonResponse
     {
-        if ($request->getMethod() === 'OPTIONS') {
-            return new JsonResponse([], 200, [
-                'Access-Control-Allow-Origin' => 'http://localhost:3000',
-                'Access-Control-Allow-Methods' => 'DELETE, OPTIONS',
-                'Access-Control-Allow-Headers' => 'Content-Type'
-            ]);
-        }
-
         $effect = $effectRepo->find($id);
         if (!$effect) {
-            return new JsonResponse(['error' => 'Effet introuvable'], 404, [
-                'Access-Control-Allow-Origin' => 'http://localhost:3000',
-                'Access-Control-Allow-Credentials' => 'true'
-            ]);
+            return new JsonResponse(['error' => 'Effet introuvable'], 404);
         }
 
         $em->remove($effect);
         $em->flush();
 
-        return new JsonResponse(['success' => true], 200, [
-            'Access-Control-Allow-Origin' => 'http://localhost:3000',
-            'Access-Control-Allow-Credentials' => 'true'
-        ]);
+        return new JsonResponse(['success' => true]);
     }
 }
