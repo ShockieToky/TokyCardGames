@@ -14,6 +14,9 @@ const Background = () => {
             >
                 Toky Universe
             </h1>
+            <h3 onClick={() => window.open('https://discord.gg/Cqzbxgvp7R', '_blank')}>
+                Rejoignez le Discord
+            </h3>
         </div>
     );
 };
