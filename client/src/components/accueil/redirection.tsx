@@ -64,6 +64,12 @@ const Redirection: React.FC = () => {
             >
                 Invocation
             </button>
+            <button
+                className='bouton-redirect'
+                onClick={() => navigate('/ZoneCombat')}
+            >
+                Zone de test combat
+            </button>
             {isAdmin && (
                 <button
                     className='bouton-redirect'

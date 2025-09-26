@@ -21,12 +21,7 @@ class UserController extends AbstractController
         UserRepository $userRepo
     ): JsonResponse {
         if ($request->getMethod() === 'OPTIONS') {
-            return new JsonResponse([], 200, [
-                'Access-Control-Allow-Origin' => 'http://localhost:3000',
-                'Access-Control-Allow-Methods' => 'POST, OPTIONS',
-                'Access-Control-Allow-Headers' => 'Content-Type',
-                'Access-Control-Allow-Credentials' => 'true' // Ajout de cette ligne
-            ]);
+            return new JsonResponse([], 200);
         }
 
         try {
@@ -35,17 +30,10 @@ class UserController extends AbstractController
             $password = $data['password'] ?? '';
 
             if (!$pseudo || !$password) {
-                return new JsonResponse(['error' => 'Pseudo et mot de passe requis'], 400, [
-                    'Access-Control-Allow-Origin' => 'http://localhost:3000',
-                    'Access-Control-Allow-Credentials' => 'true'
-                ]);
+                return new JsonResponse(['error' => 'Pseudo et mot de passe requis'], 400);
             }
-
             if ($userRepo->findOneBy(['pseudo' => $pseudo])) {
-                return new JsonResponse(['error' => 'Pseudo déjà utilisé'], 409, [
-                    'Access-Control-Allow-Origin' => 'http://localhost:3000',
-                    'Access-Control-Allow-Credentials' => 'true'
-                ]);
+                return new JsonResponse(['error' => 'Pseudo déjà utilisé'], 409);
             }
 
             $user = new User();
@@ -62,20 +50,13 @@ class UserController extends AbstractController
             $session->set('is_admin', $user->isAdmin());
             $session->save(); // Force la sauvegarde immédiate de la session
 
-            return new JsonResponse(['success' => true, 'userId' => $user->getId()], 200, [
-                'Access-Control-Allow-Origin' => 'http://localhost:3000',
-                'Access-Control-Allow-Credentials' => 'true',
-                'Access-Control-Expose-Headers' => 'Set-Cookie' // Ajout pour exposer les cookies
-            ]);
+            return new JsonResponse(['success' => true, 'userId' => $user->getId()], 200);
         } catch (\Exception $e) {
             error_log('Erreur inscription: ' . $e->getMessage());
             return new JsonResponse([
                 'error' => 'Erreur serveur',
                 'message' => $e->getMessage(),
-            ], 500, [
-                'Access-Control-Allow-Origin' => 'http://localhost:3000',
-                'Access-Control-Allow-Credentials' => 'true'
-            ]);
+            ], 500);
         }
     }
 
@@ -86,12 +67,7 @@ class UserController extends AbstractController
         UserPasswordHasherInterface $passwordHasher
     ): JsonResponse {
         if ($request->getMethod() === 'OPTIONS') {
-            return new JsonResponse([], 200, [
-                'Access-Control-Allow-Origin' => 'http://localhost:3000',
-                'Access-Control-Allow-Methods' => 'POST, OPTIONS',
-                'Access-Control-Allow-Headers' => 'Content-Type',
-                'Access-Control-Allow-Credentials' => 'true' // Ajout de cette ligne
-            ]);
+            return new JsonResponse([], 200);
         }
 
         try {
@@ -101,10 +77,7 @@ class UserController extends AbstractController
 
             $user = $userRepo->findOneBy(['pseudo' => $pseudo]);
             if (!$user || !$passwordHasher->isPasswordValid($user, $password)) {
-                return new JsonResponse(['error' => 'Identifiants invalides'], 401, [
-                    'Access-Control-Allow-Origin' => 'http://localhost:3000',
-                    'Access-Control-Allow-Credentials' => 'true'
-                ]);
+                return new JsonResponse(['error' => 'Identifiants invalides'], 401);
             }
             
             // Initialisation et sauvegarde de la session
@@ -122,20 +95,13 @@ class UserController extends AbstractController
                 'success' => true, 
                 'userId' => $user->getId(),
                 'isAdmin' => $user->isAdmin()
-            ], 200, [
-                'Access-Control-Allow-Origin' => 'http://localhost:3000',
-                'Access-Control-Allow-Credentials' => 'true',
-                'Access-Control-Expose-Headers' => 'Set-Cookie' // Ajout pour exposer les cookies
-            ]);
+            ], 200);
         } catch (\Exception $e) {
             error_log('Erreur login: ' . $e->getMessage());
             return new JsonResponse([
                 'error' => 'Erreur serveur',
                 'message' => $e->getMessage()
-            ], 500, [
-                'Access-Control-Allow-Origin' => 'http://localhost:3000',
-                'Access-Control-Allow-Credentials' => 'true'
-            ]);
+            ], 500);
         }
     }
 
@@ -143,12 +109,7 @@ class UserController extends AbstractController
     public function me(Request $request, UserRepository $userRepo): JsonResponse
     {
         if ($request->getMethod() === 'OPTIONS') {
-            return new JsonResponse([], 200, [
-                'Access-Control-Allow-Origin' => 'http://localhost:3000',
-                'Access-Control-Allow-Methods' => 'GET, OPTIONS',
-                'Access-Control-Allow-Headers' => 'Content-Type',
-                'Access-Control-Allow-Credentials' => 'true' // Ajout de cette ligne
-            ]);
+            return new JsonResponse([], 200);
         }
 
         // Récupération et debug de la session
@@ -160,10 +121,7 @@ class UserController extends AbstractController
         error_log('ID utilisateur en session: ' . ($userId ? $userId : 'NULL'));
 
         if (!$userId) {
-            return new JsonResponse(['success' => false, 'error' => 'Non connecté'], 401, [
-                'Access-Control-Allow-Origin' => 'http://localhost:3000',
-                'Access-Control-Allow-Credentials' => 'true'
-            ]);
+            return new JsonResponse(['success' => false, 'error' => 'Non connecté'], 401);
         }
 
         $user = $userRepo->find($userId);
@@ -171,11 +129,7 @@ class UserController extends AbstractController
             // Nettoyer la session invalide
             $session->remove('user_id');
             $session->save();
-            
-            return new JsonResponse(['success' => false, 'error' => 'Utilisateur introuvable'], 404, [
-                'Access-Control-Allow-Origin' => 'http://localhost:3000',
-                'Access-Control-Allow-Credentials' => 'true'
-            ]);
+            return new JsonResponse(['success' => false, 'error' => 'Utilisateur introuvable'], 404);
         }
 
         return new JsonResponse([
@@ -183,22 +137,14 @@ class UserController extends AbstractController
             'userId' => $user->getId(),
             'pseudo' => $user->getPseudo(),
             'isAdmin' => $user->isAdmin()
-        ], 200, [
-            'Access-Control-Allow-Origin' => 'http://localhost:3000',
-            'Access-Control-Allow-Credentials' => 'true'
-        ]);
+        ], 200);
     }
 
     #[Route('/users', name: 'get_users', methods: ['GET', 'OPTIONS'])]
     public function getUsers(Request $request, UserRepository $userRepo): JsonResponse
     {
         if ($request->getMethod() === 'OPTIONS') {
-            return new JsonResponse([], 200, [
-                'Access-Control-Allow-Origin' => 'http://localhost:3000',
-                'Access-Control-Allow-Methods' => 'GET, OPTIONS',
-                'Access-Control-Allow-Headers' => 'Content-Type',
-                'Access-Control-Allow-Credentials' => 'true' // Ajout de cette ligne
-            ]);
+            return new JsonResponse([], 200);
         }
 
         $users = $userRepo->findAll();
@@ -207,22 +153,14 @@ class UserController extends AbstractController
             'pseudo' => $u->getPseudo()
         ], $users);
 
-        return new JsonResponse($data, 200, [
-            'Access-Control-Allow-Origin' => 'http://localhost:3000',
-            'Access-Control-Allow-Credentials' => 'true'
-        ]);
+        return new JsonResponse($data, 200);
     }
 
     #[Route('/logout', name: 'user_logout', methods: ['POST', 'OPTIONS'])]
     public function logout(Request $request): JsonResponse
     {
         if ($request->getMethod() === 'OPTIONS') {
-            return new JsonResponse([], 200, [
-                'Access-Control-Allow-Origin' => 'http://localhost:3000',
-                'Access-Control-Allow-Methods' => 'POST, OPTIONS',
-                'Access-Control-Allow-Headers' => 'Content-Type',
-                'Access-Control-Allow-Credentials' => 'true'
-            ]);
+            return new JsonResponse([], 200);
         }
 
         // Récupérer la session et la vider
@@ -238,22 +176,14 @@ class UserController extends AbstractController
         $session->invalidate();
         $session->migrate(true); // Crée une nouvelle session avec un nouvel ID
 
-        return new JsonResponse(['success' => true, 'message' => 'Déconnecté avec succès'], 200, [
-            'Access-Control-Allow-Origin' => 'http://localhost:3000',
-            'Access-Control-Allow-Credentials' => 'true'
-        ]);
+        return new JsonResponse(['success' => true, 'message' => 'Déconnecté avec succès'], 200);
     }
 
     #[Route('/user/password/update', name: 'user_password_update', methods: ['POST', 'OPTIONS'])]
     public function updatePassword(Request $request, UserRepository $userRepository, UserPasswordHasherInterface $passwordHasher, EntityManagerInterface $entityManager): JsonResponse
     {
         if ($request->getMethod() === 'OPTIONS') {
-            return new JsonResponse([], 200, [
-                'Access-Control-Allow-Origin' => 'http://localhost:3000',
-                'Access-Control-Allow-Methods' => 'POST, OPTIONS',
-                'Access-Control-Allow-Headers' => 'Content-Type',
-                'Access-Control-Allow-Credentials' => 'true'
-            ]);
+            return new JsonResponse([], 200);
         }
 
         // Récupérer la session
@@ -262,10 +192,7 @@ class UserController extends AbstractController
 
         // Vérifier si un utilisateur est connecté
         if (!$userId) {
-            return new JsonResponse(['success' => false, 'error' => 'Non authentifié'], 401, [
-                'Access-Control-Allow-Origin' => 'http://localhost:3000',
-                'Access-Control-Allow-Credentials' => 'true'
-            ]);
+            return new JsonResponse(['success' => false, 'error' => 'Non authentifié'], 401);
         }
 
         // Récupérer les données du formulaire
@@ -275,10 +202,7 @@ class UserController extends AbstractController
 
         // Vérifier que les données nécessaires sont présentes
         if (empty($oldPassword) || empty($newPassword)) {
-            return new JsonResponse(['success' => false, 'error' => 'Ancien et nouveau mot de passe requis'], 400, [
-                'Access-Control-Allow-Origin' => 'http://localhost:3000',
-                'Access-Control-Allow-Credentials' => 'true'
-            ]);
+            return new JsonResponse(['success' => false, 'error' => 'Ancien et nouveau mot de passe requis'], 400);
         }
 
         // Récupérer l'utilisateur
@@ -287,19 +211,12 @@ class UserController extends AbstractController
             // Nettoyer la session invalide
             $session->remove('user_id');
             $session->save();
-            
-            return new JsonResponse(['success' => false, 'error' => 'Utilisateur non trouvé'], 404, [
-                'Access-Control-Allow-Origin' => 'http://localhost:3000',
-                'Access-Control-Allow-Credentials' => 'true'
-            ]);
+            return new JsonResponse(['success' => false, 'error' => 'Utilisateur non trouvé'], 404);
         }
 
         // Vérifier l'ancien mot de passe
         if (!$passwordHasher->isPasswordValid($user, $oldPassword)) {
-            return new JsonResponse(['success' => false, 'error' => 'Ancien mot de passe incorrect'], 400, [
-                'Access-Control-Allow-Origin' => 'http://localhost:3000',
-                'Access-Control-Allow-Credentials' => 'true'
-            ]);
+            return new JsonResponse(['success' => false, 'error' => 'Ancien mot de passe incorrect'], 400);
         }
 
         try {
@@ -310,19 +227,13 @@ class UserController extends AbstractController
             $entityManager->persist($user);
             $entityManager->flush();
 
-            return new JsonResponse(['success' => true], 200, [
-                'Access-Control-Allow-Origin' => 'http://localhost:3000',
-                'Access-Control-Allow-Credentials' => 'true'
-            ]);
+            return new JsonResponse(['success' => true], 200);
         } catch (\Exception $e) {
             error_log('Erreur mise à jour mot de passe: ' . $e->getMessage());
             return new JsonResponse([
                 'success' => false, 
                 'error' => 'Erreur lors de la mise à jour du mot de passe'
-            ], 500, [
-                'Access-Control-Allow-Origin' => 'http://localhost:3000',
-                'Access-Control-Allow-Credentials' => 'true'
-            ]);
+            ], 500);
         }
     }
 }

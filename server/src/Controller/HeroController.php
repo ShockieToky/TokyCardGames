@@ -15,11 +15,7 @@ final class HeroController extends AbstractController
     public function getHeroes(Request $request, EntityManagerInterface $em): JsonResponse
     {
         if ($request->getMethod() === 'OPTIONS') {
-            return new JsonResponse([], 200, [
-                'Access-Control-Allow-Origin' => 'http://localhost:3000',
-                'Access-Control-Allow-Methods' => 'GET, OPTIONS',
-                'Access-Control-Allow-Headers' => 'Content-Type'
-            ]);
+            return new JsonResponse([], 200);
         }
 
         $heroes = $em->getRepository(Hero::class)->findAll();
@@ -37,21 +33,14 @@ final class HeroController extends AbstractController
             ];
         }, $heroes);
 
-        return new JsonResponse($heroData, 200, [
-            'Access-Control-Allow-Origin' => 'http://localhost:3000',
-            'Access-Control-Allow-Credentials' => 'true'
-        ]);
+        return new JsonResponse($heroData, 200);
     }
 
     #[Route('/heroes/{id}', name: 'get_hero', methods: ['GET', 'OPTIONS'], requirements: ['id' => '\d+'])]
     public function getHero(Request $request, EntityManagerInterface $em, int $id): JsonResponse
     {
         if ($request->getMethod() === 'OPTIONS') {
-            return new JsonResponse([], 200, [
-                'Access-Control-Allow-Origin' => 'http://localhost:3000',
-                'Access-Control-Allow-Methods' => 'GET, OPTIONS',
-                'Access-Control-Allow-Headers' => 'Content-Type'
-            ]);
+            return new JsonResponse([], 200);
         }
 
         $hero = $em->getRepository(Hero::class)->find($id);
