@@ -1,162 +1,198 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useUser } from '../context/UserContext';
 import '../styles/inscriptionconnexion.css';
 
 const API_URL = 'http://localhost:8000/user';
 
+interface FormState {
+    pseudo: string;
+    password: string;
+    confirmPassword: string;
+}
+
+interface UIState {
+    message: string | null;
+    isSuccess: boolean;
+    isLoading: boolean;
+}
+
 const InscriptionConnexion = () => {
     const [isRegister, setIsRegister] = useState(false);
-    const [pseudo, setPseudo] = useState('');
-    const [password, setPassword] = useState('');
-    const [confirmPassword, setConfirmPassword] = useState('');
-    const [message, setMessage] = useState<string | null>(null);
-    const [isSuccess, setIsSuccess] = useState(false);
-    const [isLoading, setIsLoading] = useState(false);
+    const [form, setForm] = useState<FormState>({
+        pseudo: '',
+        password: '',
+        confirmPassword: ''
+    });
+    const [ui, setUI] = useState<UIState>({
+        message: null,
+        isSuccess: false,
+        isLoading: false
+    });
+
     const navigate = useNavigate();
     const { login } = useUser();
 
-    const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-        e.preventDefault();
-        setMessage(null);
-        setIsSuccess(false);
-        setIsLoading(true);
+    // Gestion optimisée des changements de formulaire
+    const updateForm = useCallback((field: keyof FormState, value: string) => {
+        setForm(prev => ({ ...prev, [field]: value }));
+    }, []);
 
-        // Validation des entrées
+    // Gestion optimisée de l'état UI
+    const updateUI = useCallback((updates: Partial<UIState>) => {
+        setUI(prev => ({ ...prev, ...updates }));
+    }, []);
+
+    // Validation centralisée
+    const validateForm = useCallback((): string | null => {
+        const { pseudo, password, confirmPassword } = form;
+
         if (!pseudo || !password || (isRegister && !confirmPassword)) {
-            setMessage('Tous les champs sont requis.');
-            setIsLoading(false);
-            return;
+            return 'Tous les champs sont requis.';
         }
 
         if (isRegister && password !== confirmPassword) {
-            setMessage('Les mots de passe ne correspondent pas.');
-            setIsLoading(false);
+            return 'Les mots de passe ne correspondent pas.';
+        }
+
+        return null;
+    }, [form, isRegister]);
+
+    // Gestion de l'inscription optimisée
+    const handleRegister = useCallback(async () => {
+        const response = await fetch(`${API_URL}/register`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ pseudo: form.pseudo, password: form.password }),
+            credentials: 'include',
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            updateUI({ isSuccess: true, message: 'Inscription réussie !' });
+
+            setTimeout(() => {
+                setIsRegister(false);
+                setForm({ pseudo: '', password: '', confirmPassword: '' });
+                updateUI({
+                    message: 'Inscription réussie ! Vous pouvez maintenant vous connecter.',
+                    isSuccess: false
+                });
+            }, 1500);
+        } else {
+            updateUI({ message: data.error || 'Erreur lors de l\'inscription.' });
+        }
+    }, [form.pseudo, form.password, updateUI]);
+
+    // Gestion de la connexion optimisée
+    const handleLogin = useCallback(async () => {
+        const result = await login(form.pseudo, form.password);
+
+        if (result.success) {
+            updateUI({ isSuccess: true, message: 'Connexion réussie !' });
+            setTimeout(() => navigate('/Accueil'), 800);
+        } else {
+            updateUI({ message: result.error || 'Identifiants invalides.' });
+        }
+    }, [form.pseudo, form.password, login, navigate, updateUI]);
+
+    // Soumission du formulaire optimisée
+    const handleSubmit = useCallback(async (e: React.FormEvent) => {
+        e.preventDefault();
+
+        const validationError = validateForm();
+        if (validationError) {
+            updateUI({ message: validationError, isSuccess: false });
             return;
         }
 
+        updateUI({ message: null, isSuccess: false, isLoading: true });
+
         try {
-            if (isRegister) {
-                // Gestion de l'inscription
-                console.log('Envoi de la requête d\'inscription...');
-
-                const response = await fetch(`${API_URL}/register`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ pseudo, password }),
-                    credentials: 'include',
-                });
-
-                console.log('Réponse inscription reçue:', response.status);
-                const data = await response.json();
-
-                if (data.success) {
-                    setIsSuccess(true);
-                    setMessage('Inscription réussie !');
-
-                    // Basculer vers connexion après inscription
-                    setTimeout(() => {
-                        setIsRegister(false);
-                        setPseudo('');
-                        setPassword('');
-                        setConfirmPassword('');
-                        setMessage('Inscription réussie ! Vous pouvez maintenant vous connecter.');
-                        setIsSuccess(false);
-                    }, 1500);
-                } else {
-                    setMessage(data.error || 'Erreur lors de l\'inscription.');
-                }
-            } else {
-                // Gestion de la connexion avec le contexte
-                console.log('Tentative de connexion via contexte...');
-                const result = await login(pseudo, password);
-
-                if (result.success) {
-                    setIsSuccess(true);
-                    setMessage('Connexion réussie !');
-
-                    // Courte temporisation pour afficher le message avant redirection
-                    setTimeout(() => {
-                        navigate('/Accueil');
-                    }, 800);
-                } else {
-                    setMessage(result.error || 'Identifiants invalides.');
-                }
-            }
+            await (isRegister ? handleRegister() : handleLogin());
         } catch (err) {
-            console.error('Erreur lors de la requête:', err);
-            setMessage('Erreur de connexion au serveur. Veuillez réessayer plus tard.');
+            console.error('Erreur:', err);
+            updateUI({
+                message: 'Erreur de connexion au serveur. Veuillez réessayer plus tard.'
+            });
         } finally {
-            setIsLoading(false);
+            updateUI({ isLoading: false });
         }
-    };
+    }, [validateForm, isRegister, handleRegister, handleLogin, updateUI]);
 
-    const switchForm = () => {
-        setIsRegister(!isRegister);
-        setMessage(null);
-        setPseudo('');
-        setPassword('');
-        setConfirmPassword('');
-    };
+    // Basculement de mode optimisé
+    const switchForm = useCallback(() => {
+        setIsRegister(prev => !prev);
+        setForm({ pseudo: '', password: '', confirmPassword: '' });
+        updateUI({ message: null, isSuccess: false });
+    }, [updateUI]);
+
+    const isDisabled = ui.isLoading || ui.isSuccess;
 
     return (
         <div className='formulaire'>
             <h2>{isRegister ? 'Inscription' : 'Connexion'}</h2>
+
             <form onSubmit={handleSubmit}>
                 <div>
                     <input
                         type="text"
-                        value={pseudo}
-                        onChange={e => setPseudo(e.target.value)}
+                        value={form.pseudo}
+                        onChange={e => updateForm('pseudo', e.target.value)}
                         required
                         placeholder='pseudo'
                         autoComplete="username"
-                        disabled={isLoading || isSuccess}
+                        disabled={isDisabled}
                     />
                 </div>
+
                 <div>
                     <input
                         type="password"
-                        value={password}
-                        onChange={e => setPassword(e.target.value)}
+                        value={form.password}
+                        onChange={e => updateForm('password', e.target.value)}
                         required
                         placeholder='mot de passe'
                         autoComplete={isRegister ? "new-password" : "current-password"}
-                        disabled={isLoading || isSuccess}
+                        disabled={isDisabled}
                     />
                 </div>
+
                 {isRegister && (
                     <div>
                         <input
                             type="password"
-                            value={confirmPassword}
-                            onChange={e => setConfirmPassword(e.target.value)}
+                            value={form.confirmPassword}
+                            onChange={e => updateForm('confirmPassword', e.target.value)}
                             required
                             placeholder='confirmer mot de passe'
                             autoComplete="new-password"
-                            disabled={isLoading || isSuccess}
+                            disabled={isDisabled}
                         />
                     </div>
                 )}
+
                 <button
                     className='submit-button'
                     type="submit"
-                    disabled={isLoading || isSuccess}
+                    disabled={isDisabled}
                 >
-                    {isLoading ? 'Chargement...' : isRegister ? "S'inscrire" : 'Se connecter'}
+                    {ui.isLoading ? 'Chargement...' : isRegister ? "S'inscrire" : 'Se connecter'}
                 </button>
             </form>
+
             <button
                 className='switch-button'
                 onClick={switchForm}
-                disabled={isLoading || isSuccess}
+                disabled={isDisabled}
             >
                 {isRegister ? 'Déjà inscrit ? Se connecter' : "Pas encore inscrit ? S'inscrire"}
             </button>
 
-            {message && (
-                <div className={`message ${isSuccess ? 'success' : 'error'}`}>
-                    {message}
+            {ui.message && (
+                <div className={`message ${ui.isSuccess ? 'success' : 'error'}`}>
+                    {ui.message}
                 </div>
             )}
         </div>

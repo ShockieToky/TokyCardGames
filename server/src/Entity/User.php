@@ -3,6 +3,8 @@
 namespace App\Entity;
 
 use App\Repository\UserRepository;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
 use Symfony\Component\Security\Core\User\UserInterface;
@@ -23,6 +25,14 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
 
     #[ORM\Column(type: 'boolean')]
     private bool $is_admin = false;
+
+    #[ORM\OneToMany(mappedBy: 'user', targetEntity: ArenaDefense::class, orphanRemoval: true)]
+    private Collection $arenaDefenses;
+
+    public function __construct()
+    {
+        $this->arenaDefenses = new ArrayCollection();
+    }
 
     public function getId(): ?int
     {
@@ -60,6 +70,57 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     {
         $this->is_admin = $is_admin;
         return $this;
+    }
+
+    /**
+     * @return Collection<int, ArenaDefense>
+     */
+    public function getArenaDefenses(): Collection
+    {
+        return $this->arenaDefenses;
+    }
+
+    public function addArenaDefense(ArenaDefense $arenaDefense): self
+    {
+        if (!$this->arenaDefenses->contains($arenaDefense)) {
+            $this->arenaDefenses->add($arenaDefense);
+            $arenaDefense->setUser($this);
+        }
+
+        return $this;
+    }
+
+    public function removeArenaDefense(ArenaDefense $arenaDefense): self
+    {
+        if ($this->arenaDefenses->removeElement($arenaDefense)) {
+            // Set the owning side to null (unless already changed)
+            if ($arenaDefense->getUser() === $this) {
+                $arenaDefense->setUser(null);
+            }
+        }
+
+        return $this;
+    }
+
+    /**
+     * Récupère la défense d'arène active de l'utilisateur
+     */
+    public function getActiveArenaDefense(): ?ArenaDefense
+    {
+        foreach ($this->arenaDefenses as $defense) {
+            if ($defense->isActive()) {
+                return $defense;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Vérifie si l'utilisateur a atteint la limite de défenses d'arène (4)
+     */
+    public function hasMaxArenaDefenses(): bool
+    {
+        return $this->arenaDefenses->count() >= 4;
     }
 
     // Méthodes requises par UserInterface
