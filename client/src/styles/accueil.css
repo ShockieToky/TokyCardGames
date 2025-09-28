@@ -41,16 +41,16 @@
     text-decoration: underline;
 }
 
-/* Affichage collection à droite des boutons, bien espacé */
+/* Styles améliorés pour la collection */
 .collection-container {
     position: absolute;
     top: 175px;
     right: 15%;
     width: 750px;
     min-height: 500px;
-    background: #fafafa;
+    background: linear-gradient(135deg, #ffffff 0%, #f0f0f0 100%);
     border-radius: 16px;
-    box-shadow: 0 2px 16px rgba(0, 0, 0, 0.08);
+    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.12);
     padding: 32px 24px;
     display: flex;
     flex-direction: column;
@@ -60,42 +60,103 @@
 }
 
 .collection-info {
-    margin-bottom: 12px;
-    font-weight: 500;
+    margin-bottom: 18px;
+    font-weight: 600;
+    color: #555;
+    font-size: 1.1rem;
+    border-bottom: 2px solid #e0c68a;
+    padding-bottom: 8px;
+    width: fit-content;
 }
 
 .collection-container h2 {
     margin-bottom: 24px;
-    font-size: 1.5rem;
-    color: #222;
+    font-size: 1.8rem;
+    color: #333;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
+    font-family: 'Cinzel', serif;
+    letter-spacing: 1px;
 }
 
 .collection-container table {
     background: white;
-    border-radius: 8px;
-    box-shadow: 0 1px 6px rgba(0, 0, 0, 0.04);
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
     margin-bottom: 18px;
+    overflow: hidden;
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    border: 2px solid #e0c68a;
 }
 
 .collection-container td {
     font-size: 1.1rem;
     vertical-align: middle;
+    padding: 16px 10px;
+    border: 1px solid #e6e6e6;
+    position: relative;
+    min-width: 110px;
+    min-height: 80px;
+    transition: all 0.3s ease;
+}
+
+/* Style amélioré pour les cases avec des héros */
+.collection-container td:not(:empty) {
+    background: linear-gradient(145deg, #fafbff 0%, #f0f2ff 100%);
+    border: 1px solid #ddd;
+    cursor: pointer;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.7);
+}
+
+.collection-container td:not(:empty):hover {
+    transform: translateY(-2px);
+    box-shadow:
+        0 4px 12px rgba(0, 0, 0, 0.1),
+        inset 0 0 0 1px rgba(255, 255, 255, 0.8);
+    background: linear-gradient(145deg, #f5f7ff 0%, #e8edff 100%);
+    border-color: #e0c68a;
+    z-index: 1;
+}
+
+.collection-container td:not(:empty):active {
+    transform: translateY(0);
+}
+
+/* Style pour le nom du héros */
+.collection-container td div:first-child {
+    font-weight: bold;
+    color: #333;
+    margin-bottom: 6px;
+    font-family: 'Cinzel', sans-serif;
+    text-shadow: 0 1px 1px rgba(255, 255, 255, 0.8);
+}
+
+/* Style pour les étoiles */
+.collection-container td div:last-child {
+    color: goldenrod;
+    font-size: 1.2rem;
+    letter-spacing: 2px;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 
 .collection-container .pagination {
-    margin-top: 18px;
+    margin-top: 24px;
     display: flex;
     justify-content: center;
-    gap: 12px;
+    gap: 16px;
+    align-items: center;
 }
 
 .collection-container button {
-    background: #ececec;
-    border: 1px solid #bbb;
-    border-radius: 4px;
-    padding: 6px 18px;
+    background: linear-gradient(to bottom, #f7f7f7, #e0e0e0);
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    padding: 8px 20px;
     font-size: 1rem;
     cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .collection-container button:disabled {
@@ -104,9 +165,33 @@
 }
 
 .collection-container button:not(:disabled):hover {
-    background: #e0e0e0;
+    background: linear-gradient(to bottom, #ffffff, #f0f0f0);
+    border-color: #bbb;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15);
 }
 
+.collection-container button:not(:disabled):active {
+    transform: translateY(1px);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+/* Pagination */
+.collection-container span {
+    font-size: 1.05rem;
+    font-weight: 500;
+    color: #555;
+}
+
+/* Case vide stylisée */
+.collection-container td:empty {
+    background: repeating-linear-gradient(45deg,
+            #f8f8f8,
+            #f8f8f8 10px,
+            #f2f2f2 10px,
+            #f2f2f2 20px);
+}
+
+/* Le reste du CSS reste inchangé */
 .hero-popup-overlay {
     position: fixed;
     top: 0;

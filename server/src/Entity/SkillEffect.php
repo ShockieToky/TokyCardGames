@@ -17,26 +17,48 @@ class SkillEffect
     #[ORM\JoinColumn(nullable: false)]
     private ?HeroSkill $skill = null;
 
+    /**
+     * Type d'effet (buff_attack, debuff_defense, stun, shield, etc.)
+     */
     #[ORM\Column(type: 'string', length: 100)]
-    private string $effect_type;
+    private string $effect_type = 'buff_attack';
 
+    /**
+     * Valeur de l'effet (pourcentage, montant fixe, etc.)
+     */
     #[ORM\Column(type: 'float')]
-    private float $value;
+    private float $value = 0.0;
 
+    /**
+     * Probabilité d'appliquer l'effet (en pourcentage)
+     */
     #[ORM\Column(type: 'integer')]
-    private int $chance;
+    private int $chance = 100;
 
+    /**
+     * Durée de l'effet en tours
+     */
     #[ORM\Column(type: 'integer')]
-    private int $duration;
+    private int $duration = 2;
 
+    /**
+     * Mise à l'échelle de l'effet (JSON format)
+     * Exemple : {"attack": 0.5, "defense": 0.2}
+     */
     #[ORM\Column(type: 'text')]
-    private int $scale_on;
+    private string $scale_on = '{}';
 
-    #[ORM\Column(type: 'text')]
-    private int $target_side;
+    /**
+     * Cible de l'effet : 'self', 'ally', 'enemy'
+     */
+    #[ORM\Column(type: 'string', length: 50)]
+    private string $target_side = 'enemy';
 
+    /**
+     * Si l'effet peut se cumuler
+     */
     #[ORM\Column(type: 'boolean')]
-    private int $cumulative;
+    private bool $cumulative = false;
 
     public function getId(): ?int
     {
@@ -129,5 +151,70 @@ class SkillEffect
     {
         $this->cumulative = $cumulative;
         return $this;
+    }
+    
+    /**
+     * Renvoie une représentation lisible de l'effet
+     */
+    public function getDescription(): string
+    {
+        $description = $this->getEffectTypeDescription();
+        
+        $valueStr = number_format($this->value, 1);
+        if ($this->effect_type === 'buff_attack' || $this->effect_type === 'buff_defense') {
+            $description .= " (+$valueStr%)";
+        } elseif ($this->effect_type === 'debuff_attack' || $this->effect_type === 'debuff_defense') {
+            $description .= " (-$valueStr%)";
+        } elseif ($this->effect_type === 'damage_over_time' || $this->effect_type === 'lifesteal') {
+            $description .= " ({$this->value}%)";
+        } elseif ($this->effect_type === 'shield') {
+            $description .= " ({$this->value}% PV)";
+        }
+        
+        if ($this->duration > 1) {
+            $description .= " pendant {$this->duration} tours";
+        }
+        
+        if ($this->chance < 100) {
+            $description .= " ({$this->chance}%)";
+        }
+        
+        return $description;
+    }
+    
+    /**
+     * Convertit le type d'effet technique en description lisible
+     */
+    private function getEffectTypeDescription(): string
+    {
+        return match ($this->effect_type) {
+            'buff_attack' => 'Augmente l\'attaque',
+            'buff_defense' => 'Augmente la défense',
+            'buff_speed' => 'Augmente la vitesse',
+            'buff_resistance' => 'Augmente la résistance',
+            'buff_hp' => 'Augmente les PV max',
+            
+            'debuff_attack' => 'Réduit l\'attaque',
+            'debuff_defense' => 'Réduit la défense',
+            'debuff_speed' => 'Réduit la vitesse',
+            'debuff_resistance' => 'Réduit la résistance',
+            
+            'stun' => 'Étourdit la cible',
+            'silence' => 'Réduit la cible au silence',
+            'freeze' => 'Gèle la cible',
+            'nullify' => 'Annule les passifs',
+            'blocker' => 'Bloque les effets des alliés',
+            'damage_over_time' => 'Inflige des dégâts continus',
+            'heal_reverse' => 'Inverse les soins en dégâts',
+            
+            'shield' => 'Crée un bouclier',
+            'protection' => 'Protège un allié',
+            'lifesteal' => 'Vol de vie',
+            'counter' => 'Contre-attaque',
+            'resurrection' => 'Résurrection',
+            'taunt' => 'Provocation',
+            
+            default => $this->effect_type,
+        };
     }
 }

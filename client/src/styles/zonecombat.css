@@ -1,7 +1,9 @@
 .choix-equipe-container {
-  max-width: 1400px;
+  max-width: 1200px;
+  /* Réduit de 1400px */
   margin: 0 auto;
-  padding: 20px;
+  padding: 15px;
+  /* Réduit de 20px */
   font-family: 'Arial', sans-serif;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   min-height: 100vh;
@@ -12,16 +14,20 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 30px;
+  margin-bottom: 20px;
+  /* Réduit de 30px */
   background: rgba(255, 255, 255, 0.1);
-  padding: 20px;
-  border-radius: 10px;
+  padding: 15px;
+  /* Réduit de 20px */
+  border-radius: 8px;
+  /* Réduit de 10px */
   backdrop-filter: blur(10px);
 }
 
 .header h1 {
   margin: 0;
-  font-size: 2.5em;
+  font-size: 2em;
+  /* Réduit de 2.5em */
   text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
 }
 
@@ -29,10 +35,13 @@
   background: #ff6b6b;
   border: none;
   color: white;
-  padding: 12px 24px;
-  border-radius: 8px;
+  padding: 8px 18px;
+  /* Réduit de 12px 24px */
+  border-radius: 6px;
+  /* Réduit de 8px */
   cursor: pointer;
-  font-size: 1.1em;
+  font-size: 1em;
+  /* Réduit de 1.1em */
   font-weight: bold;
   transition: all 0.3s ease;
 }
@@ -50,9 +59,12 @@
 .error-message {
   background: #ff4757;
   color: white;
-  padding: 15px;
-  border-radius: 8px;
-  margin-bottom: 20px;
+  padding: 12px;
+  /* Réduit de 15px */
+  border-radius: 6px;
+  /* Réduit de 8px */
+  margin-bottom: 15px;
+  /* Réduit de 20px */
   text-align: center;
   font-weight: bold;
   animation: shake 0.5s ease-in-out;
@@ -77,22 +89,28 @@
 .teams-container {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 30px;
-  margin-bottom: 40px;
+  gap: 20px;
+  /* Réduit de 30px */
+  margin-bottom: 25px;
+  /* Réduit de 40px */
 }
 
 .team-section {
   background: rgba(255, 255, 255, 0.1);
-  padding: 25px;
-  border-radius: 15px;
+  padding: 18px;
+  /* Réduit de 25px */
+  border-radius: 12px;
+  /* Réduit de 15px */
   backdrop-filter: blur(10px);
   border: 2px solid rgba(255, 255, 255, 0.2);
 }
 
 .team-title {
   text-align: center;
-  margin-bottom: 20px;
-  font-size: 1.8em;
+  margin-bottom: 15px;
+  /* Réduit de 20px */
+  font-size: 1.5em;
+  /* Réduit de 1.8em */
   font-weight: bold;
   text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
 }
@@ -108,22 +126,27 @@
 .team-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 15px;
+  gap: 12px;
+  /* Réduit de 15px */
 }
 
 .hero-slot {
-  height: 180px;
+  height: 150px;
+  /* Réduit de 180px */
 }
 
 .selected-hero {
   position: relative;
   background: rgba(255, 255, 255, 0.9);
   color: #333;
-  border-radius: 12px;
-  padding: 15px;
+  border-radius: 10px;
+  /* Réduit de 12px */
+  padding: 12px;
+  /* Réduit de 15px */
   height: 100%;
   border: 3px solid;
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+  /* Réduit de 0 8px 25px */
   transition: all 0.3s ease;
   display: flex;
   flex-direction: column;
@@ -131,14 +154,18 @@
 }
 
 .selected-hero:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 12px 35px rgba(0, 0, 0, 0.2);
+  transform: translateY(-3px);
+  /* Réduit de -5px */
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+  /* Réduit de 0 12px 35px */
 }
 
 .remove-hero-btn {
   position: absolute;
-  top: 5px;
-  right: 5px;
+  top: 3px;
+  /* Réduit de 5px */
+  right: 3px;
+  /* Réduit de 5px */
   background: none;
   border: none;
   font-size: 0.8em;
@@ -153,7 +180,8 @@
 
 .empty-slot {
   border: 2px dashed rgba(255, 255, 255, 0.5);
-  border-radius: 12px;
+  border-radius: 10px;
+  /* Réduit de 12px */
   height: 100%;
   display: flex;
   align-items: center;
@@ -165,66 +193,85 @@
 
 .hero-name {
   font-weight: bold;
-  font-size: 1.1em;
-  margin-bottom: 8px;
+  font-size: 1em;
+  /* Réduit de 1.1em */
+  margin-bottom: 6px;
+  /* Réduit de 8px */
   text-align: center;
 }
 
 .hero-stars {
   text-align: center;
-  font-size: 1.2em;
-  margin-bottom: 10px;
+  font-size: 1.1em;
+  /* Réduit de 1.2em */
+  margin-bottom: 8px;
+  /* Réduit de 10px */
   color: #ffd700;
 }
 
 .hero-stats {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 5px;
-  font-size: 0.9em;
+  gap: 4px;
+  /* Réduit de 5px */
+  font-size: 0.85em;
+  /* Réduit de 0.9em */
 }
 
 .hero-stats span {
   background: rgba(0, 0, 0, 0.1);
-  padding: 3px 6px;
+  padding: 2px 5px;
+  /* Réduit de 3px 6px */
   border-radius: 4px;
   text-align: center;
 }
 
 .available-heroes-section {
   background: rgba(255, 255, 255, 0.1);
-  padding: 25px;
-  border-radius: 15px;
+  padding: 18px;
+  /* Réduit de 25px */
+  border-radius: 12px;
+  /* Réduit de 15px */
   backdrop-filter: blur(10px);
-  margin-bottom: 30px;
+  margin-bottom: 25px;
+  /* Réduit de 30px */
 }
 
 .available-heroes-section h3 {
   text-align: center;
-  margin-bottom: 25px;
-  font-size: 1.8em;
+  margin-bottom: 18px;
+  /* Réduit de 25px */
+  font-size: 1.5em;
+  /* Réduit de 1.8em */
   text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
 }
 
 .heroes-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 20px;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  /* Réduit de 280px */
+  gap: 15px;
+  /* Réduit de 20px */
 }
 
 .hero-card {
   background: rgba(255, 255, 255, 0.95);
   color: #333;
-  border-radius: 12px;
-  padding: 20px;
+  border-radius: 10px;
+  /* Réduit de 12px */
+  padding: 15px;
+  /* Réduit de 20px */
   border: 3px solid;
   transition: all 0.3s ease;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.1);
+  /* Réduit de 0 4px 15px */
 }
 
 .hero-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+  transform: translateY(-3px);
+  /* Réduit de -5px */
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+  /* Réduit de 0 8px 25px */
 }
 
 .hero-card.selected {
@@ -234,23 +281,30 @@
 
 .hero-actions {
   display: flex;
-  gap: 10px;
-  margin-top: 15px;
+  gap: 8px;
+  /* Réduit de 10px */
+  margin-top: 12px;
+  /* Réduit de 15px */
 }
 
 .hero-selection-status {
-  font-size: 0.8rem;
+  font-size: 0.75rem;
+  /* Réduit de 0.8rem */
   font-weight: bold;
-  margin: 5px 0;
-  padding: 3px 6px;
-  border-radius: 10px;
+  margin: 4px 0;
+  /* Réduit de 5px 0 */
+  padding: 2px 5px;
+  /* Réduit de 3px 6px */
+  border-radius: 8px;
+  /* Réduit de 10px */
   background: rgba(255, 255, 255, 0.1);
   text-align: center;
 }
 
 .in-both-teams {
   background: linear-gradient(135deg, rgba(74, 144, 226, 0.2), rgba(231, 76, 60, 0.2));
-  box-shadow: 0 0 15px rgba(74, 144, 226, 0.3), 0 0 15px rgba(231, 76, 60, 0.3);
+  box-shadow: 0 0 12px rgba(74, 144, 226, 0.3), 0 0 12px rgba(231, 76, 60, 0.3);
+  /* Réduit de 15px */
 }
 
 .hero-in-team {
@@ -270,12 +324,16 @@
 
 .add-to-team-btn {
   flex: 1;
-  padding: 8px 12px;
+  padding: 6px 10px;
+  /* Réduit de 8px 12px */
   border: none;
-  border-radius: 6px;
+  border-radius: 5px;
+  /* Réduit de 6px */
   cursor: pointer;
   font-weight: bold;
   transition: all 0.3s ease;
+  font-size: 0.9em;
+  /* Ajouté pour réduire la taille */
 }
 
 .team-a-btn {
@@ -304,27 +362,34 @@
 
 .combat-section {
   text-align: center;
-  margin-bottom: 30px;
+  margin-bottom: 25px;
+  /* Réduit de 30px */
 }
 
 .launch-combat-btn {
   background: linear-gradient(45deg, #ff6b6b, #ffd93d);
   border: none;
   color: white;
-  padding: 20px 40px;
-  border-radius: 50px;
+  padding: 15px 30px;
+  /* Réduit de 20px 40px */
+  border-radius: 40px;
+  /* Réduit de 50px */
   cursor: pointer;
-  font-size: 1.4em;
+  font-size: 1.2em;
+  /* Réduit de 1.4em */
   font-weight: bold;
   text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+  /* Réduit de 0 8px 25px */
   transition: all 0.3s ease;
   animation: pulse 2s infinite;
 }
 
 .launch-combat-btn:hover:not(:disabled) {
-  transform: translateY(-3px);
-  box-shadow: 0 12px 35px rgba(0, 0, 0, 0.3);
+  transform: translateY(-2px);
+  /* Réduit de -3px */
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  /* Réduit de 0 12px 35px */
 }
 
 .launch-combat-btn:disabled {
@@ -336,41 +401,52 @@
 
 @keyframes pulse {
   0% {
-    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
   }
 
+  /* Réduit de 0 8px 25px */
   50% {
-    box-shadow: 0 8px 35px rgba(255, 107, 107, 0.4);
+    box-shadow: 0 6px 25px rgba(255, 107, 107, 0.4);
   }
 
+  /* Réduit de 0 8px 35px */
   100% {
-    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
   }
+
+  /* Réduit de 0 8px 25px */
 }
 
 .combat-results {
   background: rgba(255, 255, 255, 0.1);
-  padding: 30px;
-  border-radius: 15px;
+  padding: 25px;
+  /* Réduit de 30px */
+  border-radius: 12px;
+  /* Réduit de 15px */
   backdrop-filter: blur(10px);
 }
 
 .combat-results h3 {
   text-align: center;
-  margin-bottom: 25px;
-  font-size: 2em;
+  margin-bottom: 20px;
+  /* Réduit de 25px */
+  font-size: 1.8em;
+  /* Réduit de 2em */
   text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
 }
 
 .combat-summary {
   text-align: center;
-  margin-bottom: 30px;
+  margin-bottom: 25px;
+  /* Réduit de 30px */
 }
 
 .winner-announcement {
-  font-size: 2.5em;
+  font-size: 2.2em;
+  /* Réduit de 2.5em */
   font-weight: bold;
-  margin-bottom: 15px;
+  margin-bottom: 12px;
+  /* Réduit de 15px */
   text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.4);
   animation: celebration 2s ease-in-out;
 }
@@ -400,36 +476,48 @@
 }
 
 .combat-info {
-  font-size: 1.3em;
+  font-size: 1.2em;
+  /* Réduit de 1.3em */
   color: rgba(255, 255, 255, 0.9);
 }
 
 .combat-logs {
-  margin-top: 30px;
+  margin-top: 25px;
+  /* Réduit de 30px */
 }
 
 .combat-logs h4 {
-  margin-bottom: 20px;
-  font-size: 1.5em;
+  margin-bottom: 15px;
+  /* Réduit de 20px */
+  font-size: 1.3em;
+  /* Réduit de 1.5em */
   text-align: center;
 }
 
 .logs-container {
   background: rgba(0, 0, 0, 0.3);
-  border-radius: 10px;
-  padding: 20px;
-  max-height: 400px;
+  border-radius: 8px;
+  /* Réduit de 10px */
+  padding: 15px;
+  /* Réduit de 20px */
+  max-height: 350px;
+  /* Réduit de 400px */
   overflow-y: auto;
   border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 .log-entry {
-  padding: 8px 12px;
-  margin-bottom: 5px;
+  padding: 6px 10px;
+  /* Réduit de 8px 12px */
+  margin-bottom: 4px;
+  /* Réduit de 5px */
   background: rgba(255, 255, 255, 0.1);
-  border-radius: 6px;
+  border-radius: 5px;
+  /* Réduit de 6px */
   border-left: 4px solid #4dabf7;
   font-family: 'Courier New', monospace;
+  font-size: 0.9em;
+  /* Ajouté pour réduire la taille du texte */
   animation: fadeIn 0.3s ease-in-out;
 }
 
@@ -445,17 +533,19 @@
   }
 }
 
-/* Responsive Design */
+/* Responsive Design - Ajusté pour les tailles réduites */
 @media (max-width: 1200px) {
   .heroes-grid {
-    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    /* Réduit de 250px */
   }
 }
 
 @media (max-width: 768px) {
   .teams-container {
     grid-template-columns: 1fr;
-    gap: 20px;
+    gap: 15px;
+    /* Réduit de 20px */
   }
 
   .team-grid {
@@ -468,11 +558,13 @@
 
   .header {
     flex-direction: column;
-    gap: 15px;
+    gap: 12px;
+    /* Réduit de 15px */
   }
 
   .header h1 {
-    font-size: 2em;
+    font-size: 1.8em;
+    /* Réduit de 2em */
   }
 
   .hero-actions {
@@ -486,35 +578,46 @@
   }
 
   .launch-combat-btn {
-    padding: 15px 30px;
-    font-size: 1.2em;
+    padding: 12px 25px;
+    /* Réduit de 15px 30px */
+    font-size: 1.1em;
+    /* Réduit de 1.2em */
   }
 
   .winner-announcement {
-    font-size: 2em;
+    font-size: 1.8em;
+    /* Réduit de 2em */
   }
 }
 
 .teams-ready-message {
   text-align: center;
-  padding: 15px;
+  padding: 12px;
+  /* Réduit de 15px */
   background: linear-gradient(135deg, rgba(46, 204, 113, 0.2), rgba(39, 174, 96, 0.2));
   border: 2px solid rgba(39, 174, 96, 0.5);
-  border-radius: 10px;
-  margin: 20px 0;
+  border-radius: 8px;
+  /* Réduit de 10px */
+  margin: 15px 0;
+  /* Réduit de 20px 0 */
   color: #27ae60;
   font-weight: bold;
   animation: pulse 2s ease-in-out infinite alternate;
+  font-size: 0.95em;
+  /* Ajouté pour réduire la taille */
 }
 
 @keyframes pulse {
   0% {
-    box-shadow: 0 0 10px rgba(39, 174, 96, 0.3);
+    box-shadow: 0 0 8px rgba(39, 174, 96, 0.3);
   }
 
+  /* Réduit de 10px */
   100% {
-    box-shadow: 0 0 20px rgba(39, 174, 96, 0.6);
+    box-shadow: 0 0 15px rgba(39, 174, 96, 0.6);
   }
+
+  /* Réduit de 20px */
 }
 
 .launch-combat-btn.ready {
@@ -529,18 +632,23 @@
 
 @keyframes glow {
   0% {
-    box-shadow: 0 5px 20px rgba(39, 174, 96, 0.4);
+    box-shadow: 0 4px 15px rgba(39, 174, 96, 0.4);
   }
 
+  /* Réduit de 0 5px 20px */
   100% {
-    box-shadow: 0 5px 30px rgba(39, 174, 96, 0.8);
+    box-shadow: 0 4px 25px rgba(39, 174, 96, 0.8);
   }
+
+  /* Réduit de 0 5px 30px */
 }
 
 .loading-message {
   text-align: center;
-  padding: 50px;
-  font-size: 1.2rem;
+  padding: 40px;
+  /* Réduit de 50px */
+  font-size: 1.1rem;
+  /* Réduit de 1.2rem */
   color: #3498db;
 }
 
@@ -551,8 +659,10 @@
 
 /* Styles pour la vue de combat (placeholder) */
 .combat-view-placeholder {
-  padding: 20px;
-  max-width: 1200px;
+  padding: 15px;
+  /* Réduit de 20px */
+  max-width: 1000px;
+  /* Réduit de 1200px */
   margin: 0 auto;
   color: white;
 }
@@ -560,19 +670,25 @@
 .combat-header {
   display: flex;
   align-items: center;
-  gap: 20px;
-  margin-bottom: 30px;
+  gap: 15px;
+  /* Réduit de 20px */
+  margin-bottom: 25px;
+  /* Réduit de 30px */
 }
 
 .back-btn {
-  padding: 10px 20px;
+  padding: 8px 15px;
+  /* Réduit de 10px 20px */
   background: linear-gradient(135deg, #3498db, #2980b9);
   color: white;
   border: none;
-  border-radius: 25px;
+  border-radius: 20px;
+  /* Réduit de 25px */
   cursor: pointer;
   font-weight: bold;
   transition: all 0.3s ease;
+  font-size: 0.95em;
+  /* Ajouté pour réduire la taille */
 }
 
 .back-btn:hover {
@@ -584,14 +700,18 @@
   display: flex;
   justify-content: space-around;
   align-items: flex-start;
-  margin: 30px 0;
+  margin: 25px 0;
+  /* Réduit de 30px 0 */
 }
 
 .team-summary {
   background: rgba(255, 255, 255, 0.1);
-  padding: 20px;
-  border-radius: 15px;
-  min-width: 200px;
+  padding: 15px;
+  /* Réduit de 20px */
+  border-radius: 12px;
+  /* Réduit de 15px */
+  min-width: 180px;
+  /* Réduit de 200px */
 }
 
 .team-summary.team-a {
@@ -603,7 +723,8 @@
 }
 
 .vs-divider {
-  font-size: 2rem;
+  font-size: 1.8rem;
+  /* Réduit de 2rem */
   font-weight: bold;
   color: #f39c12;
   text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
@@ -612,13 +733,18 @@
 
 .placeholder-message {
   text-align: center;
-  padding: 40px;
+  padding: 30px;
+  /* Réduit de 40px */
   background: rgba(255, 255, 255, 0.1);
-  border-radius: 15px;
-  margin-top: 30px;
+  border-radius: 12px;
+  /* Réduit de 15px */
+  margin-top: 25px;
+  /* Réduit de 30px */
 }
 
 .placeholder-message p {
-  font-size: 1.1rem;
-  margin: 10px 0;
+  font-size: 1rem;
+  /* Réduit de 1.1rem */
+  margin: 8px 0;
+  /* Réduit de 10px 0 */
 }

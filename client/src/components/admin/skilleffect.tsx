@@ -8,7 +8,7 @@ interface SkillEffect {
     value: number;
     chance: number;
     duration: number;
-    scale_on: string;
+    scale_on: string;  // C'est bien une string, comme défini dans l'entité
     target_side: string;
     cumulative: boolean;
 }
@@ -105,6 +105,59 @@ const SkillEffects: React.FC<SkillEffectsProps> = ({ skillId, onEffectChange }) 
         );
     };
 
+    const saveEffectChanges = (effect: SkillEffect) => {
+        setLoading(true);
+
+        // Assurer que scale_on est une chaîne JSON valide
+        let effectToSend = { ...effect };
+
+        try {
+            // Vérifier si c'est déjà un JSON valide
+            if (typeof effectToSend.scale_on !== 'string') {
+                effectToSend.scale_on = '{}';
+            } else {
+                // Tester si c'est un JSON valide
+                JSON.parse(effectToSend.scale_on);
+            }
+        } catch (e) {
+            // Si pas valide, réinitialiser à un objet JSON vide
+            console.warn("JSON scale_on invalide, utilisation de la valeur par défaut");
+            effectToSend.scale_on = '{}';
+        }
+
+        fetch(`${API_URL}/skill/effect/${effect.id}/edit`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            credentials: 'include',
+            body: JSON.stringify(effectToSend)
+        })
+            .then(res => {
+                if (!res.ok) {
+                    return res.text().then(text => {
+                        throw new Error(`Erreur HTTP ${res.status}: ${text.substring(0, 100)}...`);
+                    });
+                }
+                return res.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    setMessage(`Effet mis à jour avec succès: ${data.description || ''}`);
+                    if (onEffectChange) onEffectChange();
+                } else {
+                    setMessage(`Erreur: ${data.error || 'Erreur inconnue'}`);
+                }
+                setLoading(false);
+            })
+            .catch(err => {
+                console.error('Erreur lors de la mise à jour de l\'effet:', err);
+                setMessage(`Erreur: ${err.message || 'Erreur inconnue'}`);
+                setLoading(false);
+            });
+    };
+
+    // La méthode addNewEffect est déjà correcte pour scale_on, mais ajoutons une meilleure gestion des erreurs
     const addNewEffect = () => {
         setLoading(true);
         const newEffect = {
@@ -113,8 +166,8 @@ const SkillEffects: React.FC<SkillEffectsProps> = ({ skillId, onEffectChange }) 
             value: BUFF_VALUES.buff_attack,
             chance: 100,
             duration: 2,
-            scale_on: "{}",
-            target_side: "ally", // Par défaut sur un allié pour les buffs
+            scale_on: "{}",  // JSON vide, correct
+            target_side: "ally",
             cumulative: false
         };
 
@@ -126,17 +179,27 @@ const SkillEffects: React.FC<SkillEffectsProps> = ({ skillId, onEffectChange }) 
             credentials: 'include',
             body: JSON.stringify(newEffect)
         })
-            .then(res => res.json())
+            .then(res => {
+                if (!res.ok) {
+                    return res.text().then(text => {
+                        throw new Error(`Erreur HTTP ${res.status}: ${text.substring(0, 100)}...`);
+                    });
+                }
+                return res.json();
+            })
             .then(data => {
                 if (data.success && data.id) {
-                    // Récupérer à nouveau les effets pour rafraîchir la liste
+                    // Mettre à jour la liste des effets
                     fetch(`${API_URL}/skill/${skillId}/effects`, {
                         credentials: 'include'
                     })
-                        .then(res => res.json())
+                        .then(res => {
+                            if (!res.ok) throw new Error(`Erreur HTTP ${res.status}`);
+                            return res.json();
+                        })
                         .then(updatedEffects => {
                             setEffects(updatedEffects);
-                            setMessage('Nouvel effet ajouté avec succès');
+                            setMessage(`Nouvel effet ajouté avec succès: ${data.description || ''}`);
                             if (onEffectChange) onEffectChange();
                         })
                         .catch(err => {
@@ -149,11 +212,12 @@ const SkillEffects: React.FC<SkillEffectsProps> = ({ skillId, onEffectChange }) 
             })
             .catch(err => {
                 console.error('Erreur lors de l\'ajout de l\'effet:', err);
-                setMessage('Erreur lors de l\'ajout de l\'effet');
+                setMessage(`Erreur: ${err.message || 'Erreur inconnue'}`);
                 setLoading(false);
             });
     };
 
+    // Fonction deleteEffect avec gestion d'erreur améliorée
     const deleteEffect = (effectId: number) => {
         if (!window.confirm("Êtes-vous sûr de vouloir supprimer cet effet?")) return;
 
@@ -162,11 +226,18 @@ const SkillEffects: React.FC<SkillEffectsProps> = ({ skillId, onEffectChange }) 
             method: 'DELETE',
             credentials: 'include'
         })
-            .then(res => res.json())
+            .then(res => {
+                if (!res.ok) {
+                    return res.text().then(text => {
+                        throw new Error(`Erreur HTTP ${res.status}: ${text.substring(0, 100)}...`);
+                    });
+                }
+                return res.json();
+            })
             .then(data => {
                 if (data.success) {
                     setEffects(prev => prev.filter(effect => effect.id !== effectId));
-                    setMessage('Effet supprimé avec succès');
+                    setMessage(data.message || 'Effet supprimé avec succès');
                     if (onEffectChange) onEffectChange();
                 } else {
                     setMessage(`Erreur: ${data.error || 'Erreur inconnue'}`);
@@ -175,34 +246,7 @@ const SkillEffects: React.FC<SkillEffectsProps> = ({ skillId, onEffectChange }) 
             })
             .catch(err => {
                 console.error('Erreur lors de la suppression de l\'effet:', err);
-                setMessage('Erreur lors de la suppression de l\'effet');
-                setLoading(false);
-            });
-    };
-
-    const saveEffectChanges = (effect: SkillEffect) => {
-        setLoading(true);
-        fetch(`${API_URL}/skill/effect/${effect.id}/edit`, {
-            method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            credentials: 'include',
-            body: JSON.stringify(effect)
-        })
-            .then(res => res.json())
-            .then(data => {
-                if (data.success) {
-                    setMessage(`Effet mis à jour avec succès`);
-                    if (onEffectChange) onEffectChange();
-                } else {
-                    setMessage(`Erreur: ${data.error || 'Erreur inconnue'}`);
-                }
-                setLoading(false);
-            })
-            .catch(err => {
-                console.error('Erreur lors de la mise à jour de l\'effet:', err);
-                setMessage('Erreur lors de la mise à jour de l\'effet');
+                setMessage(`Erreur: ${err.message || 'Erreur inconnue'}`);
                 setLoading(false);
             });
     };
