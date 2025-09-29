@@ -4,6 +4,7 @@ import EditionParchemin from "../components/admin/editionparchemin";
 import AjoutUtilisateurs from "../components/admin/ajoututilisateurs";
 import ModifHero from "../components/admin/modifhero";
 import AjoutCode from "../components/admin/ajoutcode";
+import CreationEffet from "../components/admin/creationeffet";
 import '../styles/admin.css';
 
 const Admin = () => {
@@ -38,6 +39,8 @@ const Admin = () => {
                 return <ModifHero />;
             case "ajoutcode":
                 return <AjoutCode />;
+            case "creationeffet":
+                return <CreationEffet />;
             default:
                 return <div>Sélectionnez un composant</div>;
         }
@@ -59,6 +62,7 @@ const Admin = () => {
                     <option value="editionparchemin">Gérer les parchemins</option>
                     <option value="ajoututilisateurs">Gérer les utilisateurs</option>
                     <option value="ajoutcode">Ajouter un code</option>
+                    <option value="creationeffet">Créer un effet</option>
                 </select>
             </div>
 
