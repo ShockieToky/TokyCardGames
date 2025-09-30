@@ -14,7 +14,7 @@ use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Attribute\Route;
 
-#[Route('/skill/link')]
+#[Route('/link/skill/effect')]
 final class LinkSkillEffectController extends AbstractController
 {
     #[Route('/all', name: 'get_all_skill_effect_links', methods: ['GET'])]
