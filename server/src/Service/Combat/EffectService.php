@@ -2,16 +2,82 @@
 
 namespace App\Service\Combat;
 
+use App\Entity\LinkSkillEffect;
+use App\Entity\HeroSkill;
 use App\Entity\SkillEffect;
 use Doctrine\ORM\EntityManagerInterface;
 
 class EffectService
 {
+    // Constantes pour les types d'effet
+    private const EFFECT_BUFF_ATTACK = 'buff_attack';
+    private const EFFECT_BUFF_DEFENSE = 'buff_defense';
+    private const EFFECT_BUFF_SPEED = 'buff_speed';
+    private const EFFECT_BUFF_RESISTANCE = 'buff_resistance';
+    private const EFFECT_BUFF_HP = 'buff_hp';
+    
+    private const EFFECT_DEBUFF_ATTACK = 'debuff_attack';
+    private const EFFECT_DEBUFF_DEFENSE = 'debuff_defense';
+    private const EFFECT_DEBUFF_SPEED = 'debuff_speed';
+    private const EFFECT_DEBUFF_RESISTANCE = 'debuff_resistance';
+    
+    private const EFFECT_STUN = 'stun';
+    private const EFFECT_SILENCE = 'silence';
+    private const EFFECT_FREEZE = 'freeze';
+    private const EFFECT_NULLIFY = 'nullify';
+    private const EFFECT_BLOCKER = 'blocker';
+    private const EFFECT_DOT = 'damage_over_time';
+    private const EFFECT_HEAL_REVERSE = 'heal_reverse';
+    
+    private const EFFECT_SHIELD = 'shield';
+    private const EFFECT_PROTECTION = 'protection';
+    private const EFFECT_LIFESTEAL = 'lifesteal';
+    private const EFFECT_COUNTER = 'counter';
+    private const EFFECT_RESURRECTION = 'resurrection';
+    private const EFFECT_TAUNT = 'taunt';
+    
+    // Mapping des noms d'effet aux types d'effet
+    private array $effectTypeMap = [
+        'Augmentation d\'attaque' => self::EFFECT_BUFF_ATTACK,
+        'Augmentation de défense' => self::EFFECT_BUFF_DEFENSE,
+        'Augmentation de vitesse' => self::EFFECT_BUFF_SPEED,
+        'Augmentation de résistance' => self::EFFECT_BUFF_RESISTANCE,
+        'Augmentation PV' => self::EFFECT_BUFF_HP,
+        
+        'Réduction d\'attaque' => self::EFFECT_DEBUFF_ATTACK,
+        'Réduction de défense' => self::EFFECT_DEBUFF_DEFENSE,
+        'Réduction de vitesse' => self::EFFECT_DEBUFF_SPEED,
+        'Réduction de résistance' => self::EFFECT_DEBUFF_RESISTANCE,
+        
+        'Étourdissement' => self::EFFECT_STUN,
+        'Silence' => self::EFFECT_SILENCE,
+        'Gel' => self::EFFECT_FREEZE,
+        'Annulation' => self::EFFECT_NULLIFY,
+        'Bloqueur' => self::EFFECT_BLOCKER,
+        'Dégâts continus' => self::EFFECT_DOT,
+        'Soins Mortels' => self::EFFECT_HEAL_REVERSE,
+        
+        'Bouclier' => self::EFFECT_SHIELD,
+        'Protection' => self::EFFECT_PROTECTION,
+        'Soif de sang' => self::EFFECT_LIFESTEAL,
+        'Contre' => self::EFFECT_COUNTER,
+        'Sauvetage' => self::EFFECT_RESURRECTION,
+        'Provocation' => self::EFFECT_TAUNT,
+    ];
+
     private EntityManagerInterface $entityManager;
 
     public function __construct(EntityManagerInterface $entityManager)
     {
         $this->entityManager = $entityManager;
+    }
+    
+    /**
+     * Obtient le type d'effet à partir du nom de l'effet
+     */
+    private function getEffectTypeFromName(string $effectName): string
+    {
+        return $this->effectTypeMap[$effectName] ?? 'unknown';
     }
 
     /**
@@ -19,184 +85,169 @@ class EffectService
      */
     public function applySkillEffects($skill, array &$attacker, array &$target, array &$logs, array &$allFighters): void
     {
-        // Récupérer les effets du skill depuis la BDD
-        $skillEffectRepository = $this->entityManager->getRepository(SkillEffect::class);
-        $skillEffects = $skillEffectRepository->findBy(['skill' => $skill]);
+        // Récupérer les liens effet-skill depuis la BDD
+        $linkRepository = $this->entityManager->getRepository(LinkSkillEffect::class);
+        $effectLinks = $linkRepository->findBy(['skill' => $skill]);
         
-        foreach ($skillEffects as $skillEffect) {
-            // Vérifier la chance de proc
-            $chance = $skillEffect->getChance();
-            if (rand(1, 100) > $chance) {
-                $this->addCombatLog($logs, "L'effet {$skillEffect->getEffectType()} de {$skill->getName()} ne se déclenche pas ({$chance}% de chance)");
+        foreach ($effectLinks as $link) {
+            // Vérifier la chance d'application
+            $accuracy = $link->getAccuracy();
+            if (rand(1, 100) > $accuracy) {
+                $this->addCombatLog($logs, "L'effet {$link->getEffect()->getName()} de {$skill->getName()} ne se déclenche pas ({$accuracy}% de chance)");
                 continue; // L'effet ne se déclenche pas
             }
             
-            // Déterminer la cible selon target_side
+            // Déterminer le type d'effet
+            $effectName = $link->getEffect()->getName();
+            $effectType = $this->getEffectTypeFromName($effectName);
+            
+            // Déterminer la cible selon le type d'effet
             $effectTarget = null;
-            $targetSide = $skillEffect->getTargetSide();
             
-            switch ($targetSide) {
-                case 'self':
-                    $effectTarget = &$attacker;
-                    break;
-                case 'ally':
-                    // Pour les skills ciblant un allié, utiliser un allié aléatoire vivant
-                    $allies = array_filter($allFighters, function($f) use ($attacker) {
-                        return $f['team'] === $attacker['team'] && $f['isAlive'] && $f['id'] !== $attacker['id'];
-                    });
-                    if (!empty($allies)) {
-                        $randomAlly = array_rand($allies);
-                        $effectTarget = &$allFighters[$randomAlly];
-                    } else {
-                        // Si pas d'allié disponible, se cibler soi-même
-                        $effectTarget = &$attacker;
-                    }
-                    break;
-                case 'enemy':
-                default:
-                    $effectTarget = &$target;
-                    break;
-            }
-            
-            if (!$effectTarget) {
-                $this->addCombatLog($logs, "Aucune cible valide pour l'effet {$skillEffect->getEffectType()}");
-                continue;
-            }
-            
-            // Calculer la valeur de l'effet (avec scaling si défini)
-            $value = $skillEffect->getValue();
-            $scaleOnJson = $skillEffect->getScaleOn();
-            
-            if ($scaleOnJson && $scaleOnJson !== '{}') {
-                $scaleOn = json_decode($scaleOnJson, true);
-                
-                if ($scaleOn && is_array($scaleOn)) {
-                    $scaledValue = 0;
-                    foreach ($scaleOn as $stat => $coefficient) {
-                        switch (strtolower($stat)) {
-                            case 'attack':
-                            case 'atk':
-                                $scaledValue += $attacker['attack'] * $coefficient;
-                                break;
-                            case 'defense':
-                            case 'def':
-                                $scaledValue += $attacker['defense'] * $coefficient;
-                                break;
-                            case 'speed':
-                            case 'vit':
-                                $scaledValue += $attacker['speed'] * $coefficient;
-                                break;
-                            case 'resistance':
-                            case 'res':
-                                $scaledValue += $attacker['resistance'] * $coefficient;
-                                break;
-                            case 'hp':
-                                $scaledValue += $attacker['maxHp'] * $coefficient;
-                                break;
-                        }
-                    }
-                    if ($scaledValue > 0) {
-                        $value = $scaledValue;
-                    }
-                }
+            // Par défaut, déterminer la cible en fonction du type d'effet
+            if ($this->isBuffEffect($effectType)) {
+                // Les buffs vont généralement sur l'attaquant ou ses alliés
+                $effectTarget = &$attacker;
+            } else if ($this->isDebuffEffect($effectType)) {
+                // Les debuffs vont généralement sur la cible
+                $effectTarget = &$target;
+            } else if ($effectType === self::EFFECT_SHIELD || 
+                       $effectType === self::EFFECT_PROTECTION || 
+                       $effectType === self::EFFECT_LIFESTEAL ||
+                       $effectType === self::EFFECT_COUNTER ||
+                       $effectType === self::EFFECT_RESURRECTION) {
+                // Effets positifs spéciaux vont sur l'attaquant ou ses alliés
+                $effectTarget = &$attacker;
+            } else {
+                // Autres effets (stun, silence, etc.) vont sur la cible
+                $effectTarget = &$target;
             }
             
             // Appliquer l'effet
-            $this->addCombatLog($logs, "Application de l'effet {$skillEffect->getEffectType()} avec valeur {$value} pour {$skillEffect->getDuration()} tours");
+            $value = $link->getValue();
+            $duration = $link->getDuration();
+            
+            $this->addCombatLog($logs, "Application de l'effet {$effectName} avec valeur {$value} pour {$duration} tours");
             
             $this->applyEffectByType(
-                $skillEffect->getEffectType(),
+                $effectType,
                 $effectTarget,
                 $logs,
                 $attacker,
                 $value,
-                $skillEffect->getDuration(),
-                $scaleOnJson
+                $duration,
+                null // Scale on n'est plus utilisé
             );
         }
+    }
+
+    /**
+     * Détermine si un type d'effet est un buff
+     */
+    private function isBuffEffect(string $effectType): bool
+    {
+        return in_array($effectType, [
+            self::EFFECT_BUFF_ATTACK,
+            self::EFFECT_BUFF_DEFENSE,
+            self::EFFECT_BUFF_HP,
+            self::EFFECT_BUFF_RESISTANCE,
+            self::EFFECT_BUFF_SPEED
+        ]);
+    }
+    
+    /**
+     * Détermine si un type d'effet est un debuff
+     */
+    private function isDebuffEffect(string $effectType): bool
+    {
+        return in_array($effectType, [
+            self::EFFECT_DEBUFF_ATTACK,
+            self::EFFECT_DEBUFF_DEFENSE,
+            self::EFFECT_DEBUFF_RESISTANCE,
+            self::EFFECT_DEBUFF_SPEED
+        ]);
     }
 
     public function applyEffectByType(string $effectType, array &$target, array &$logs, array &$caster = null, $value = null, int $duration = 1, ?string $scaleOn = null): void
     {
         switch ($effectType) {
             // BUFFS DE STATISTIQUES
-            case 'buff_hp':
+            case self::EFFECT_BUFF_HP:
                 $this->buffHp($target, $logs, $duration, $value);
                 break;
-            case 'buff_defense':
+            case self::EFFECT_BUFF_DEFENSE:
                 $this->buffDefense($target, $logs, $duration, $value);
                 break;
-            case 'buff_attack':
+            case self::EFFECT_BUFF_ATTACK:
                 $this->buffAttack($target, $logs, $duration, $value);
                 break;
-            case 'buff_speed':
+            case self::EFFECT_BUFF_SPEED:
                 $this->buffSpeed($target, $logs, $duration, $value);
                 break;
-            case 'buff_resistance':
+            case self::EFFECT_BUFF_RESISTANCE:
                 $this->buffResistance($target, $logs, $duration, $value);
                 break;
                 
             // DÉBUFFS DE STATISTIQUES
-            case 'debuff_defense':
+            case self::EFFECT_DEBUFF_DEFENSE:
                 $this->debuffDefense($target, $logs, $duration, $value);
                 break;
-            case 'debuff_speed':
+            case self::EFFECT_DEBUFF_SPEED:
                 $this->debuffSpeed($target, $logs, $duration, $value);
                 break;
-            case 'debuff_attack':
+            case self::EFFECT_DEBUFF_ATTACK:
                 $this->debuffAttack($target, $logs, $duration, $value);
                 break;
-            case 'debuff_resistance':
+            case self::EFFECT_DEBUFF_RESISTANCE:
                 $this->debuffResistance($target, $logs, $duration, $value);
                 break;
                 
             // EFFETS SPÉCIAUX POSITIFS
-            case 'shield':
+            case self::EFFECT_SHIELD:
                 if ($caster) {
                     $this->applyShield($target, $caster, $logs, $duration, $value);
                 }
                 break;
-            case 'protection':
+            case self::EFFECT_PROTECTION:
                 if ($caster) {
                     $this->applyProtection($target, $caster, $logs, $duration);
                 }
                 break;
-            case 'lifesteal':
+            case self::EFFECT_LIFESTEAL:
                 $this->applyLifesteal($target, $logs, $duration, $value);
                 break;
-            case 'counter':
+            case self::EFFECT_COUNTER:
                 $this->applyCounter($target, $logs, $duration, $value);
                 break;
-            case 'resurrection':
+            case self::EFFECT_RESURRECTION:
                 $this->applyResurrection($target, $logs, $duration, $value);
                 break;
                 
             // EFFETS NÉGATIFS
-            case 'stun':
+            case self::EFFECT_STUN:
                 $this->applyStun($target, $logs, $duration);
                 break;
-            case 'silence':
+            case self::EFFECT_SILENCE:
                 $this->applySilence($target, $logs, $duration);
                 break;
-            case 'nullify':
+            case self::EFFECT_NULLIFY:
                 $this->applyNullify($target, $logs, $duration);
                 break;
-            case 'blocker':
+            case self::EFFECT_BLOCKER:
                 $this->applyBlocker($target, $logs, $duration);
                 break;
-            case 'damage_over_time':
-            case 'dot':
+            case self::EFFECT_DOT:
                 $this->applyDamageOverTime($target, $logs, $duration, $value);
                 break;
-            case 'taunt':
+            case self::EFFECT_TAUNT:
                 if ($caster) {
                     $this->applyTaunt($target, $caster, $logs, $duration);
                 }
                 break;
-            case 'heal_reverse':
+            case self::EFFECT_HEAL_REVERSE:
                 $this->applyHealReverse($target, $logs, $duration);
                 break;
-            case 'freeze':
+            case self::EFFECT_FREEZE:
                 $this->applyFreeze($target, $logs, $duration);
                 break;
                 
@@ -205,6 +256,9 @@ class EffectService
                 break;
         }
     }
+
+    // Le reste des méthodes reste inchangé car elles ne dépendent pas directement de la structure des entités
+    
     /**
      * Crée un nouvel effet de statut.
      */
@@ -512,7 +566,51 @@ class EffectService
         return 0; // Aucun effet
     }
     
-   /**
+    /**
+     * MÉTHODES POUR LES DÉBUFFS DE STATISTIQUES
+     */
+    
+    /**
+     * Réduction Défense: -15% de défense
+     */
+    public function debuffDefense(array &$target, array &$logs, int $duration = 3, ?int $customValue = null): void
+    {
+        $reduction = $customValue ?? intval($target['defense'] * 0.15);
+        $effect = $this->createEffect('debuff', 'Défense affaiblie', $reduction, $duration, 'defense');
+        $this->applyEffect($target, $effect, $logs);
+    }
+
+    /**
+     * Réduction Vitesse: -15% de vitesse
+     */
+    public function debuffSpeed(array &$target, array &$logs, int $duration = 3, ?int $customValue = null): void
+    {
+        $reduction = $customValue ?? intval($target['speed'] * 0.15);
+        $effect = $this->createEffect('debuff', 'Ralentissement', $reduction, $duration, 'speed');
+        $this->applyEffect($target, $effect, $logs);
+    }
+
+    /**
+     * Réduction Attaque: -20% d'attaque
+     */
+    public function debuffAttack(array &$target, array &$logs, int $duration = 3, ?int $customValue = null): void
+    {
+        $reduction = $customValue ?? intval($target['attack'] * 0.20);
+        $effect = $this->createEffect('debuff', 'Faiblesse', $reduction, $duration, 'attack');
+        $this->applyEffect($target, $effect, $logs);
+    }
+
+    /**
+     * Réduction Résistance: -20 de résistance
+     */
+    public function debuffResistance(array &$target, array &$logs, int $duration = 3, ?int $customValue = null): void
+    {
+        $reduction = $customValue ?? 20;
+        $effect = $this->createEffect('debuff', 'Vulnérabilité', $reduction, $duration, 'resistance');
+        $this->applyEffect($target, $effect, $logs);
+    }
+    
+    /**
      * Méthode principale de traitement des effets, mise à jour pour gérer les nouveaux effets
      */
     public function processEffects(array &$fighters, array &$logs): void
@@ -592,50 +690,6 @@ class EffectService
                 $this->checkForResurrection($fighter, $logs);
             }
         }
-    }
-
-     /**
-     * MÉTHODES POUR LES DÉBUFFS DE STATISTIQUES
-     */
-    
-    /**
-     * Réduction Défense: -15% de défense
-     */
-    public function debuffDefense(array &$target, array &$logs, int $duration = 3, ?int $customValue = null): void
-    {
-        $reduction = $customValue ?? intval($target['defense'] * 0.15);
-        $effect = $this->createEffect('debuff', 'Défense affaiblie', $reduction, $duration, 'defense');
-        $this->applyEffect($target, $effect, $logs);
-    }
-
-    /**
-     * Réduction Vitesse: -15% de vitesse
-     */
-    public function debuffSpeed(array &$target, array &$logs, int $duration = 3, ?int $customValue = null): void
-    {
-        $reduction = $customValue ?? intval($target['speed'] * 0.15);
-        $effect = $this->createEffect('debuff', 'Ralentissement', $reduction, $duration, 'speed');
-        $this->applyEffect($target, $effect, $logs);
-    }
-
-    /**
-     * Réduction Attaque: -20% d'attaque
-     */
-    public function debuffAttack(array &$target, array &$logs, int $duration = 3, ?int $customValue = null): void
-    {
-        $reduction = $customValue ?? intval($target['attack'] * 0.20);
-        $effect = $this->createEffect('debuff', 'Faiblesse', $reduction, $duration, 'attack');
-        $this->applyEffect($target, $effect, $logs);
-    }
-
-    /**
-     * Réduction Résistance: -20 de résistance
-     */
-    public function debuffResistance(array &$target, array &$logs, int $duration = 3, ?int $customValue = null): void
-    {
-        $reduction = $customValue ?? 20;
-        $effect = $this->createEffect('debuff', 'Vulnérabilité', $reduction, $duration, 'resistance');
-        $this->applyEffect($target, $effect, $logs);
     }
     
     /**

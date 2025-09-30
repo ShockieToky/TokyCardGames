@@ -62,36 +62,46 @@ final class HeroSkillController extends AbstractController
             ]);
         }
 
-        $hero = $heroRepo->find($heroId);
-        if (!$hero) {
-            return new JsonResponse(['error' => 'Héros introuvable'], 404, [
+        try {
+            $hero = $heroRepo->find($heroId);
+            if (!$hero) {
+                return new JsonResponse(['error' => 'Héros introuvable'], 404, [
+                    'Access-Control-Allow-Origin' => 'http://localhost:3000',
+                    'Access-Control-Allow-Credentials' => 'true'
+                ]);
+            }
+
+            $skills = $skillRepo->findBy(['hero' => $hero]);
+            $data = array_map(function($skill) {
+                return [
+                    'id' => $skill->getId(),
+                    'name' => $skill->getName(),
+                    'description' => $skill->getDescription(),
+                    'multiplicator' => $skill->getMultiplicator(),
+                    'scaling' => $skill->getScaling(),
+                    'hits_number' => $skill->getHitsNumber(),
+                    'cooldown' => $skill->getCooldown(),
+                    'initial_cooldown' => $skill->getInitialCooldown(),
+                    'is_passive' => $skill->getIsPassive(),
+                    'targeting' => $skill->getTargeting(),
+                    'targeting_team' => $skill->getTargetingTeam(),
+                    'does_damage' => $skill->getDoesDamage(),
+                ];
+            }, $skills);
+
+            return new JsonResponse($data, 200, [
+                'Access-Control-Allow-Origin' => 'http://localhost:3000',
+                'Access-Control-Allow-Credentials' => 'true'
+            ]);
+        } catch (\Exception $e) {
+            // Log l'erreur pour le débogage
+            error_log('Erreur dans getHeroSkills: ' . $e->getMessage());
+            
+            return new JsonResponse(['error' => 'Erreur serveur: ' . $e->getMessage()], 500, [
                 'Access-Control-Allow-Origin' => 'http://localhost:3000',
                 'Access-Control-Allow-Credentials' => 'true'
             ]);
         }
-
-        $skills = $skillRepo->findBy(['hero' => $hero]);
-        $data = array_map(function($skill) {
-            return [
-                'id' => $skill->getId(),
-                'name' => $skill->getName(),
-                'description' => $skill->getDescription(),
-                'multiplicator' => $skill->getMultiplicator(),
-                'scaling' => $skill->getScaling(),
-                'hits_number' => $skill->getHitsNumber(),
-                'cooldown' => $skill->getCooldown(),
-                'initial_cooldown' => $skill->getInitialCooldown(),
-                'is_passive' => $skill->getIsPassive(),
-                'targeting' => $skill->getTargeting(),
-                'targeting_team' => $skill->getTargetingTeam(),
-                'does_damage' => $skill->getDoesDamage(),
-            ];
-        }, $skills);
-
-        return new JsonResponse($data, 200, [
-            'Access-Control-Allow-Origin' => 'http://localhost:3000',
-            'Access-Control-Allow-Credentials' => 'true'
-        ]);
     }
 
     #[Route('/hero/skill/{id}', name: 'get_hero_skill', methods: ['GET', 'OPTIONS'])]

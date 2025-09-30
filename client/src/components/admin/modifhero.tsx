@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import SkillEffects from './skilleffect'; // Importer le nouveau composant
+import SkillEffectsModal from './effetsort';
 
 const API_URL = 'http://localhost:8000';
 
@@ -37,6 +37,7 @@ const ModifHero: React.FC = () => {
     const [heroSkills, setHeroSkills] = useState<HeroSkill[]>([]);
     const [message, setMessage] = useState<string | null>(null);
     const [loading, setLoading] = useState<boolean>(false);
+    const [activeEffectSkill, setActiveEffectSkill] = useState<{ id: number, name: string } | null>(null);
 
     // Fonction pour parser et obtenir la stat de scaling actuelle
     const getScalingStat = (scalingJson: string): string => {
@@ -110,13 +111,28 @@ const ModifHero: React.FC = () => {
         fetch(`${API_URL}/hero/${selectedHeroId}/skills`, {
             credentials: 'include'
         })
-            .then(res => res.json())
+            .then(res => {
+                if (!res.ok) {
+                    return res.text().then(text => {
+                        console.error('Réponse d\'erreur du serveur:', text.substring(0, 200));
+                        throw new Error(`Erreur HTTP ${res.status}`);
+                    });
+                }
+                return res.text().then(text => {
+                    try {
+                        return JSON.parse(text);
+                    } catch (e) {
+                        console.error('Réponse non-JSON:', text.substring(0, 200));
+                        throw new Error('Format de réponse invalide');
+                    }
+                });
+            })
             .then(data => {
                 setHeroSkills(data);
             })
             .catch(err => {
                 console.error('Erreur lors de la récupération des compétences:', err);
-                setMessage('Erreur lors de la récupération des compétences');
+                setMessage(`Erreur: ${err.message}`);
             });
     }, [selectedHeroId]);
 
@@ -528,7 +544,13 @@ const ModifHero: React.FC = () => {
                                             </select>
                                         </div>
                                     </div>
-
+                                    <button
+                                        className="bouton-admin effect-btn"
+                                        onClick={() => setActiveEffectSkill({ id: skill.id, name: skill.name })}
+                                        disabled={loading}
+                                    >
+                                        Gérer les effets
+                                    </button>
                                     <button
                                         className="bouton-admin"
                                         onClick={() => saveSkillChanges(skill)}
@@ -536,14 +558,6 @@ const ModifHero: React.FC = () => {
                                     >
                                         Enregistrer la compétence
                                     </button>
-
-                                    {/* Utilisation du composant SkillEffects */}
-                                    <SkillEffects
-                                        skillId={skill.id}
-                                        onEffectChange={() => {
-                                            setMessage('Effet mis à jour avec succès');
-                                        }}
-                                    />
                                 </div>
                             );
                         }
@@ -564,6 +578,14 @@ const ModifHero: React.FC = () => {
                             );
                         }
                     })}
+                    {activeEffectSkill && (
+                        <SkillEffectsModal
+                            skillId={activeEffectSkill.id}
+                            skillName={activeEffectSkill.name}
+                            onClose={() => setActiveEffectSkill(null)}
+                            onEffectChange={() => setMessage('Effets mis à jour avec succès')}
+                        />
+                    )}
                 </div>
             )}
         </div>
