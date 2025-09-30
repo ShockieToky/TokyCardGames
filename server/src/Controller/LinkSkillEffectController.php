@@ -52,7 +52,7 @@ final class LinkSkillEffectController extends AbstractController
     }
     
     #[Route('/add', name: 'add_skill_effect_link', methods: ['POST'])]
-    public function addLink(
+    public function createLink(
         Request $request, 
         EntityManagerInterface $em, 
         HeroSkillRepository $skillRepo,
