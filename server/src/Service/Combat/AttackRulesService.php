@@ -8,18 +8,21 @@ use App\Entity\HeroSkill;
 use App\Entity\SkillEffect;
 use App\Repository\HeroSkillRepository;
 use App\Repository\SkillEffectRepository;
+use Doctrine\ORM\EntityManagerInterface;
+
 
 class AttackRulesService
 {
     private EffectService $effectService;
     private SkillEffectRepository $skillEffectRepository;
+    private EntityManagerInterface $entityManager;
 
-    public function __construct(EffectService $effectService, SkillEffectRepository $skillEffectRepository) 
+    public function __construct(EffectService $effectService, SkillEffectRepository $skillEffectRepository, EntityManagerInterface $entityManager) 
     {
         $this->effectService = $effectService;
         $this->skillEffectRepository = $skillEffectRepository;
+        $this->entityManager = $entityManager;
     }
-
     /**
      * Sélectionne une cible pour l'attaque en fonction du type de ciblage
      */
@@ -103,34 +106,22 @@ class AttackRulesService
         // Par défaut, cible aléatoire
         return $targets[array_rand($targets)];
     }
-    
-    /**
-     * Exécute une attaque basique
-     */
-    public function executeBasicAttack(array &$attacker, array &$target, array &$logs): array
+
+    private function doesSkillIgnoreDefense(HeroSkill $skill): bool
     {
-        // Calculer les dégâts de base
-        $damage = $this->calculateBasicAttackDamage($attacker, $target);
+        // Récupérer les liens effet-skill depuis la BDD
+        $linkRepository = $this->entityManager->getRepository(\App\Entity\LinkSkillEffect::class);
+        $effectLinks = $linkRepository->findBy(['skill' => $skill]);
         
-        // Appliquer les dégâts
-        $damage = $this->applyDamage($attacker, $target, $damage, $logs);
+        foreach ($effectLinks as $link) {
+            if ($link->getEffect()->getName() === 'Ignore la défense') {
+                return true;
+            }
+        }
         
-        // Log de l'action
-        $this->addCombatLog(
-            $logs,
-            "{$attacker['name']} (#{$attacker['id']}) attaque {$target['name']} (#{$target['id']}) et inflige $damage dégâts."
-        );
-        
-        // Vérifier les effets de contre-attaque
-        $this->checkCounterEffects($target, $attacker, $logs);
-        
-        // Appliquer les effets de vol de vie
-        $this->applyLifestealEffects($attacker, $damage, $logs);
-        
-        return [
-            'damage' => $damage,
-            'hit' => true,
-        ];
+        // Vérifier aussi dans le scaling (pour la compatibilité avec l'ancien système)
+        $scaling = json_decode($skill->getScaling(), true) ?: [];
+        return isset($scaling['ignore_defense']) && $scaling['ignore_defense'];
     }
     
     /**
@@ -193,18 +184,6 @@ class AttackRulesService
     }
     
     /**
-     * Calcule les dégâts d'une attaque basique
-     */
-    private function calculateBasicAttackDamage(array $attacker, array $target): int
-    {
-        // Formule de base: Attaque - Défense/2
-        $damage = max(1, $attacker['attack'] - $target['defense'] / 2);
-        
-        // Arrondir à l'entier
-        return (int)round($damage);
-    }
-    
-    /**
      * Calcule les dégâts d'une compétence
      */
     private function calculateSkillDamage(array $attacker, array $target, HeroSkill $skill): int
@@ -220,6 +199,8 @@ class AttackRulesService
         
         // Appliquer le scaling sur les stats
         foreach ($scaling as $stat => $value) {
+            if ($stat === 'ignore_defense') continue; // Ignorer cette clé, traitée séparément
+            
             switch ($stat) {
                 case 'attack':
                     $damage += $attacker['attack'] * $value;
@@ -239,8 +220,11 @@ class AttackRulesService
             }
         }
         
-        // Prise en compte de la défense (sauf si spécifié autrement dans le scaling)
-        if (!isset($scaling['ignore_defense']) || !$scaling['ignore_defense']) {
+        // Vérifier si la compétence ignore la défense
+        $ignoreDefense = $this->doesSkillIgnoreDefense($skill);
+        
+        // Prise en compte de la défense (sauf si le sort l'ignore)
+        if (!$ignoreDefense) {
             $defenseReduction = $target['defense'] / 2;
             $damage = max(1, $damage - $defenseReduction);
         }
@@ -471,8 +455,22 @@ class AttackRulesService
     {
         if ($this->effectService && $target['isAlive']) {
             if ($this->effectService->shouldCounterAttack($target, $logs)) {
-                // Exécuter une attaque basique de contre
-                $this->executeBasicAttack($target, $attacker, $logs);
+                // Au lieu d'une attaque basique, utiliser la première compétence
+                $this->addCombatLog($logs, "{$target['name']} contre-attaque!");
+                
+                // Trouver le premier skill du personnage
+                $firstSkill = $this->entityManager->getRepository(HeroSkill::class)
+                    ->findOneBy(['hero' => $target['heroId']], ['id' => 'ASC']);
+                
+                if ($firstSkill) {
+                    // Exécuter le skill comme contre-attaque
+                    $this->executeSkill($target, $firstSkill, $attacker, [$attacker, $target], $logs);
+                } else {
+                    // Fallback: appliquer des dégâts directs si aucun skill n'est trouvé
+                    $damage = (int)($target['attack'] * 0.7);
+                    $this->applyDamage($target, $attacker, $damage, $logs);
+                    $this->addCombatLog($logs, "{$target['name']} contre-attaque et inflige {$damage} dégâts!");
+                }
             }
         }
     }

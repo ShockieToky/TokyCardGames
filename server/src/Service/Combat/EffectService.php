@@ -9,7 +9,6 @@ use Doctrine\ORM\EntityManagerInterface;
 
 class EffectService
 {
-    // Constantes pour les types d'effet
     private const EFFECT_BUFF_ATTACK = 'buff_attack';
     private const EFFECT_BUFF_DEFENSE = 'buff_defense';
     private const EFFECT_BUFF_SPEED = 'buff_speed';
@@ -36,26 +35,26 @@ class EffectService
     private const EFFECT_RESURRECTION = 'resurrection';
     private const EFFECT_TAUNT = 'taunt';
     
-    // Mapping des noms d'effet aux types d'effet
+    // Mapping pour correspondre à la BDD
     private array $effectTypeMap = [
-        'Augmentation d\'attaque' => self::EFFECT_BUFF_ATTACK,
-        'Augmentation de défense' => self::EFFECT_BUFF_DEFENSE,
-        'Augmentation de vitesse' => self::EFFECT_BUFF_SPEED,
-        'Augmentation de résistance' => self::EFFECT_BUFF_RESISTANCE,
+        'Augmentation Attaque' => self::EFFECT_BUFF_ATTACK,
+        'Augmentation Défense' => self::EFFECT_BUFF_DEFENSE,
+        'Augmentation Vitesse' => self::EFFECT_BUFF_SPEED,
+        'Augmentation Résistance' => self::EFFECT_BUFF_RESISTANCE,
         'Augmentation PV' => self::EFFECT_BUFF_HP,
         
-        'Réduction d\'attaque' => self::EFFECT_DEBUFF_ATTACK,
-        'Réduction de défense' => self::EFFECT_DEBUFF_DEFENSE,
-        'Réduction de vitesse' => self::EFFECT_DEBUFF_SPEED,
-        'Réduction de résistance' => self::EFFECT_DEBUFF_RESISTANCE,
+        'Réduction Attaque' => self::EFFECT_DEBUFF_ATTACK,
+        'Réduction Défense' => self::EFFECT_DEBUFF_DEFENSE,
+        'Réduction Vitesse' => self::EFFECT_DEBUFF_SPEED,
+        'Réduction Résistance' => self::EFFECT_DEBUFF_RESISTANCE,
         
-        'Étourdissement' => self::EFFECT_STUN,
+        'Etourdissement' => self::EFFECT_STUN,
         'Silence' => self::EFFECT_SILENCE,
         'Gel' => self::EFFECT_FREEZE,
         'Annulation' => self::EFFECT_NULLIFY,
         'Bloqueur' => self::EFFECT_BLOCKER,
-        'Dégâts continus' => self::EFFECT_DOT,
-        'Soins Mortels' => self::EFFECT_HEAL_REVERSE,
+        'Dégâts continue' => self::EFFECT_DOT,
+        'Soins Mortel' => self::EFFECT_HEAL_REVERSE,
         
         'Bouclier' => self::EFFECT_SHIELD,
         'Protection' => self::EFFECT_PROTECTION,
@@ -250,7 +249,6 @@ class EffectService
             case self::EFFECT_FREEZE:
                 $this->applyFreeze($target, $logs, $duration);
                 break;
-                
             default:
                 $this->addCombatLog($logs, "Effet inconnu : {$effectType}");
                 break;
@@ -838,6 +836,26 @@ class EffectService
                     $this->addCombatLog($logs, "{$target['name']} (#{$target['id']}) se prépare à contre-attaquer!");
                     return true;
                 }
+            }
+        }
+        
+        return false;
+    }
+
+    /**
+     * Vérifie si un sort ignore la défense
+     * @param HeroSkill $skill Le sort à vérifier
+     * @return bool True si le sort ignore la défense, false sinon
+     */
+    public function skillIgnoresDefense(HeroSkill $skill): bool
+    {
+        // Récupérer les liens effet-skill depuis la BDD
+        $linkRepository = $this->entityManager->getRepository(LinkSkillEffect::class);
+        $effectLinks = $linkRepository->findBy(['skill' => $skill]);
+        
+        foreach ($effectLinks as $link) {
+            if ($link->getEffect()->getName() === 'Ignore la défense') {
+                return true;
             }
         }
         
